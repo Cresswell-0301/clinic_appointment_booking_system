@@ -1,0 +1,75 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f6f8fa;
+}
+
+/* NAVBAR */
+.navbar {
+    background: #1e88e5;
+    color: white;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar nav a {
+    color: white;
+    margin-left: 20px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.navbar nav a:hover {
+    text-decoration: underline;
+}
+
+/* HERO SECTION */
+.hero {
+    text-align: center;
+    padding: 80px 20px;
+    background: white;
+    margin: 40px auto;
+    width: 80%;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgb(0 0 0 / 10%);
+}
+
+.btn-primary {
+    display: inline-block;
+    padding: 12px 24px;
+    background: #1e88e5;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    margin-top: 20px;
+    font-weight: bold;
+}
+
+.btn-primary:hover {
+    background: #1565c0;
+}
+
+/* STATUS BOX */
+.status-box {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.status {
+    padding: 10px 20px;
+    font-size: 16px;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.success {
+    background: #c8e6c9;
+    color: #2e7d32;
+}
+
+.error {
+    background: #ffcdd2;
+    color: #c62828;
+}
