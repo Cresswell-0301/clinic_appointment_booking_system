@@ -10,9 +10,9 @@ function getDbConnection()
     ];
 
     $conn = sqlsrv_connect(DB_SERVER, $connectionInfo);
-    
+
     if ($conn === false) {
-        die("Database connection failed.");
+        die("Database connection failed." . print_r(sqlsrv_errors(), true));
     }
 
     return $conn;
