@@ -1,6 +1,10 @@
 <?php
 session_start();
 
+if (isset($_SESSION['user_id'])) {
+    $pageTitle = 'Home';
+}
+
 require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
@@ -11,7 +15,6 @@ include __DIR__ . '/includes/header.php';
 
 <head>
     <meta charset="UTF-8">
-    <title>Clinic Appointment System</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
