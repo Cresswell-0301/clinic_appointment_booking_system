@@ -1,6 +1,8 @@
 <?php
 session_start();
 
+$pageTitle = 'Login';
+
 require_once __DIR__ . '/includes/db.php';
 
 $error = '';
@@ -24,7 +26,7 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $passwordHash = hash('sha256', $password);
 
-        $sql = "SELECT user_id, full_name, role 
+        $sql = "SELECT user_id, full_name, email, phone_number, role
                 FROM Users 
                 WHERE username = ? AND password_hash = ?";
 
@@ -49,6 +51,8 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $_SESSION['user_id']    = $row['user_id'];
                     $_SESSION['full_name']  = $row['full_name'];
+                    $_SESSION['email']      = $row['email'];
+                    $_SESSION['phone_number'] = $row['phone_number'];
                     $_SESSION['role']       = $row['role'];
 
                     switch ($row['role']) {
@@ -77,14 +81,13 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-include __DIR__ . '/includes/header.php';
+include __DIR__ . '/components/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>Clinic Appointment System - Login</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
         .login-container {
