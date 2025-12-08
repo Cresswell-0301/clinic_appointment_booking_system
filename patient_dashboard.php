@@ -49,7 +49,7 @@ sqlsrv_execute($stmtNext);
 
 $nextAppointment = sqlsrv_fetch_array($stmtNext, SQLSRV_FETCH_ASSOC);
 
-include __DIR__ . '/includes/header.php';
+include __DIR__ . '/components/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
