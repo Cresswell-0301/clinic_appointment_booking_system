@@ -20,6 +20,7 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
         <h1>Clinic Appointment System</h1>
 
         <nav>
+            <!-- Home / Dashboard -->
             <?php if (strpos($_SERVER['PHP_SELF'], 'index.php') === false && strpos($_SERVER['PHP_SELF'], 'patient_dashboard.php') === false && strpos($_SERVER['PHP_SELF'], 'doctor_dashboard.php') === false && strpos($_SERVER['PHP_SELF'], 'admin_dashboard.php') === false): ?>
                 <a href=<?php
                         echo isset($_SESSION['user_id']) ?
