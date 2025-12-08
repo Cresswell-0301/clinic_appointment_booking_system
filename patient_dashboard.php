@@ -15,7 +15,7 @@ $conn = getDbConnection();
 $patientId = $_SESSION['user_id'];
 $today = date('Y-m-d');
 
-// Fetch Today’s Appointments
+// Tdy Appointments
 $sqlToday = "
     SELECT A.appointment_id, A.appointment_date, A.appointment_time, U.full_name AS doctor_name
     FROM Appointments A
@@ -34,7 +34,7 @@ while ($row = sqlsrv_fetch_array($stmtToday, SQLSRV_FETCH_ASSOC)) {
     $todaysAppointments[] = $row;
 }
 
-// Fetch Next Upcoming Appointment
+// Upcoming Appointment
 $sqlNext = "
     SELECT TOP 1 A.appointment_id, A.appointment_date, A.appointment_time, U.full_name AS doctor_name
     FROM Appointments A
@@ -105,7 +105,7 @@ include __DIR__ . '/includes/header.php';
     <div class="dashboard-container">
         <h2>Welcome, <?php echo htmlspecialchars($_SESSION['full_name']); ?></h2>
 
-        <!-- Today's Appointments -->
+        <!-- Tdy Appointments -->
         <div class="section-title">Today's Appointments</div>
         <?php if (empty($todaysAppointments)): ?>
             <p>No appointments for today.</p>
@@ -118,7 +118,7 @@ include __DIR__ . '/includes/header.php';
             <?php endforeach; ?>
         <?php endif; ?>
 
-        <!-- Next Upcoming Appointment -->
+        <!-- Upcoming Appointment -->
         <div class="section-title">Next Upcoming Appointment</div>
         <?php if ($nextAppointment): ?>
             <div class="appointment-card">
