@@ -8,7 +8,7 @@ if (isset($_SESSION['user_id'])) {
 require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
-include __DIR__ . '/includes/header.php';
+include __DIR__ . '/components/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
