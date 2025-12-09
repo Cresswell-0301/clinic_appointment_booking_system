@@ -15,6 +15,25 @@ $doctorId = $_SESSION['doctor_id'];
 $message = "";
 $error = "";
 
+// Sort
+$sortColumn = $_GET['sort'] ?? 'available_date';
+$sortOrder  = $_GET['order'] ?? 'asc';
+
+$allowedColumns = ['available_date', 'available_time', 'is_booked'];
+if (!in_array($sortColumn, $allowedColumns, true)) {
+    $sortColumn = 'available_date';
+}
+
+$sortOrder = strtolower($sortOrder) === 'desc' ? 'DESC' : 'ASC';
+
+$orderExtra = '';
+
+if ($sortColumn === 'available_date') {
+    $orderExtra = ', available_time ASC';
+} elseif ($sortColumn === 'is_booked') {
+    $orderExtra = ', available_date ASC, available_time ASC';
+}
+
 function generateTimeSlots($start, $end, $durationMinutes)
 {
     $slots = [];
@@ -166,7 +185,7 @@ $sqlAvailability = "
     SELECT availability_id, available_date, available_time, is_booked
     FROM DoctorAvailability
     WHERE doctor_id = ?
-    ORDER BY available_date, available_time
+    ORDER BY $sortColumn $sortOrder $orderExtra
 ";
 
 $availabilityList = fetchAll($conn, $sqlAvailability, [$doctorId]);
@@ -393,11 +412,51 @@ include __DIR__ . '/components/header.php';
         <!-- Availability List -->
         <h3>Upcoming Availability</h3>
 
+        <?php
+        $dateArrow = $timeArrow = $statusArrow = '<i class="fa-solid fa-angle-down"></i>';
+
+        if ($sortColumn === 'available_date') {
+            $dateArrow = ($sortOrder === 'ASC')
+                ? '<i class="fa-solid fa-angle-up"></i>'
+                : '<i class="fa-solid fa-angle-down"></i>';
+        }
+
+        if ($sortColumn === 'available_time') {
+            $timeArrow = ($sortOrder === 'ASC')
+                ? '<i class="fa-solid fa-angle-up"></i>'
+                : '<i class="fa-solid fa-angle-down"></i>';
+        }
+
+        if ($sortColumn === 'is_booked') {
+            $statusArrow = ($sortOrder === 'ASC')
+                ? '<i class="fa-solid fa-angle-up"></i>'
+                : '<i class="fa-solid fa-angle-down"></i>';
+        }
+        ?>
+
         <table style="width:100%;background:white;border-radius:8px;padding:15px; text-align:center;">
             <tr>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Status</th>
+                <th>
+                    <a href="?sort=available_date&order=<?php echo ($sortColumn == 'available_date' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
+                        style=" text-decoration:none; color: black;">
+                        Date <?php echo $dateArrow; ?>
+                    </a>
+                </th>
+
+                <th>
+                    <a href="?sort=available_time&order=<?php echo ($sortColumn == 'available_time' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
+                        style=" text-decoration:none; color: black;">
+                        Time <?php echo $timeArrow; ?>
+                    </a>
+                </th>
+
+                <th>
+                    <a href="?sort=is_booked&order=<?php echo ($sortColumn == 'is_booked' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
+                        style=" text-decoration:none; color: black;">
+                        Status <?php echo $statusArrow; ?>
+                    </a>
+                </th>
+
                 <th>Action</th>
             </tr>
 
@@ -417,7 +476,7 @@ include __DIR__ . '/components/header.php';
                             <?php if (!$slot['is_booked']): ?>
                                 <a href="?delete=<?php echo $slot['availability_id']; ?>" class="admin-btn" style="background:#e53935;">Delete</a>
                             <?php else: ?>
-                                <span style="color:gray;">Locked</span>
+                                <span class="admin-btn" style="color:gray; background:#e0e0e0;">Locked</span>
                             <?php endif; ?>
                         </td>
                     </tr>
