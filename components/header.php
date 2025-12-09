@@ -50,6 +50,8 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
 
             <!-- Doctor -->
             <?php if ($userRole === 'Doctor'): ?>
+                <a href="doctor_view_appointments.php">All Appointments</a>
+
                 <a href="doctor_schedule.php">Schedule</a>
             <?php endif; ?>
 
