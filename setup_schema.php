@@ -9,9 +9,7 @@ if (!$conn) {
 
 $queries = [];
 
-/**
- * USERS
- */
+// USERS
 $queries[] = "
 IF OBJECT_ID('dbo.Users', 'U') IS NULL
 BEGIN
@@ -28,9 +26,7 @@ BEGIN
 END
 ";
 
-/**
- * DOCTORS
- */
+// DOCTORS
 $queries[] = "
 IF OBJECT_ID('dbo.Doctors', 'U') IS NULL
 BEGIN
@@ -45,9 +41,7 @@ BEGIN
 END
 ";
 
-/**
- * DOCTOR AVAILABILITY
- */
+// DOCTOR AVAILABILITY
 $queries[] = "
 IF OBJECT_ID('dbo.DoctorAvailability', 'U') IS NULL
 BEGIN
@@ -63,9 +57,7 @@ BEGIN
 END
 ";
 
-/**
- * APPOINTMENTS
- */
+// APPOINTMENTS
 $queries[] = "
 IF OBJECT_ID('dbo.Appointments', 'U') IS NULL
 BEGIN
@@ -86,9 +78,6 @@ BEGIN
 END
 ";
 
-// ------------------------------------------------------------------
-// Execute all queries
-// ------------------------------------------------------------------
 foreach ($queries as $sql) {
     $stmt = sqlsrv_query($conn, $sql);
     if ($stmt === false) {
