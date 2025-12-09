@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
 require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
-$doctorId = $_SESSION['user_id'];
+$doctorId = $_SESSION['doctor_id'];
 
 // Today appointments
 $sqlToday = "
@@ -48,6 +48,15 @@ $sqlNext = "
     AND appointment_date >= CAST(GETDATE() AS DATE)
     AND status = 'Booked'
     ORDER BY appointment_date, appointment_time;
+";
+
+// Available schedule slots
+$sqlSchedule = "
+    SELECT COUNT(*) AS totalAvailable
+    FROM DoctorAvailability
+    WHERE doctor_id = ?
+    AND available_date >= CAST(GETDATE() AS DATE)
+    AND is_booked = 0;
 ";
 
 $nextAppt = fetchOne($conn, $sqlNext, [$doctorId]);
@@ -96,13 +105,16 @@ include __DIR__ . '/components/header.php';
                 </div>
             </div>
 
+            <div class="summary-card">
+                <div class="icon">📋</div>
+                <div class="label">Available Slots</div>
+                <div class="value">
+                    <?php
+                    $scheduleCount = fetchOne($conn, $sqlSchedule, [$doctorId])['totalAvailable'] ?? 0;
+                    echo $scheduleCount;
+                    ?>
+                </div>
+            </div>
         </div>
-
-        <!-- Links -->
-        <div class="admin-actions">
-            <a class="admin-btn" href="doctor_schedule.php">View Schedule</a>
-            <a class="admin-btn" href="doctor_view_appointments.php">All Appointments</a>
-        </div>
-
     </div>
 </div>

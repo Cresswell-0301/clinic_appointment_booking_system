@@ -67,6 +67,14 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                             exit;
 
                         case 'Doctor':
+                            $sqlDoctor = "
+                                SELECT doctor_id FROM Doctors
+                                WHERE user_id = ?
+                            ";
+                            $doctorRow = fetchAll($conn, $sqlDoctor, [$_SESSION['user_id']])[0] ?? [];
+
+                            $_SESSION['doctor_id'] = $doctorRow['doctor_id'];
+
                             header('Location: doctor_dashboard.php');
                             exit;
 

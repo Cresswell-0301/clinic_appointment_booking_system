@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
 require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
-$userId = $_SESSION['user_id'];
+$doctorId = $_SESSION['doctor_id'];
 
 $message = "";
 $error = "";
@@ -28,15 +28,6 @@ function generateTimeSlots($start, $end, $durationMinutes)
 
     return $slots;
 }
-
-// fetch doctor_id
-$sqlDoctor = "
-    SELECT doctor_id FROM Doctors
-    WHERE user_id = ?
-";
-$doctorRow = fetchAll($conn, $sqlDoctor, [$userId])[0] ?? [];
-
-$doctorId = $doctorRow['doctor_id'] ?? null;
 
 $keepModalOpen = false;
 
