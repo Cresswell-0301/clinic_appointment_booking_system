@@ -17,3 +17,33 @@ function getDbConnection()
 
     return $conn;
 }
+
+if (!function_exists('fetchAll')) {
+    function fetchAll($conn, string $sql, array $params = []): array
+    {
+        $stmt = sqlsrv_query($conn, $sql, $params);
+        if ($stmt === false) {
+            return [];
+        }
+
+        $rows = [];
+        while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+}
+
+if (!function_exists('fetchOne')) {
+    function fetchOne($conn, string $sql, array $params = []): ?array
+    {
+        $stmt = sqlsrv_query($conn, $sql, $params);
+        if ($stmt === false) {
+            return null;
+        }
+
+        $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+        return $row === null ? null : $row;
+    }
+}

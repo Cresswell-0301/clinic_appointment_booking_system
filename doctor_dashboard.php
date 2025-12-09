@@ -13,13 +13,6 @@ $conn = getDbConnection();
 
 $doctorId = $_SESSION['user_id'];
 
-function fetchOne($conn, $sql, $params = [])
-{
-    $stmt = sqlsrv_query($conn, $sql, $params);
-    if ($stmt === false) return null;
-    return sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
-}
-
 // Today appointments
 $sqlToday = "
     SELECT COUNT(*) AS totalToday

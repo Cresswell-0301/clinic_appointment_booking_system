@@ -10,13 +10,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
 require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
-function fetchOne($conn, $sql)
-{
-    $stmt = sqlsrv_query($conn, $sql);
-    if ($stmt === false) return null;
-    return sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
-}
-
 // Users
 $sqlUsers = "
     SELECT
