@@ -10,6 +10,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
 require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
+function fetchOne($conn, $sql)
+{
+    $stmt = sqlsrv_query($conn, $sql);
+    if ($stmt === false) return null;
+    return sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+}
+
 // Users
 $sqlUsers = "
     SELECT
@@ -26,9 +33,9 @@ $totalDoctors = $userCounts['totalDoctors'];
 // Appointments
 $sqlAppointments = "
     SELECT
-        SUM(CASE WHEN status = 'Booked'    THEN 1 ELSE 0 END) AS totalBooked,
-        SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS totalCompleted,
-        SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS totalCancelled
+        COALESCE(SUM(CASE WHEN status = 'Booked'    THEN 1 ELSE 0 END), 0) AS totalBooked,
+        COALESCE(SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END), 0) AS totalCompleted,
+        COALESCE(SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END), 0) AS totalCancelled
     FROM Appointments;
 ";
 
@@ -37,14 +44,6 @@ $apptCounts = fetchOne($conn, $sqlAppointments) ?? ['totalBooked' => 0, 'totalCo
 $totalBookedAppointments = $apptCounts['totalBooked'];
 $totalCompletedAppointments = $apptCounts['totalCompleted'];
 $totalCancelledAppointments = $apptCounts['totalCancelled'];
-
-
-function fetchOne($conn, $sql)
-{
-    $stmt = sqlsrv_query($conn, $sql);
-    if ($stmt === false) return null;
-    return sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
-}
 
 include __DIR__ . '/components/header.php';
 ?>
