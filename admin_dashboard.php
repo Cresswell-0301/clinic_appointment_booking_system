@@ -11,24 +11,40 @@ require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
 // Users
-$sqlTotalUsers = "SELECT COUNT(*) AS total FROM Users";
-$stmt1 = sqlsrv_query($conn, $sqlTotalUsers);
-$totalUsers = sqlsrv_fetch_array($stmt1, SQLSRV_FETCH_ASSOC)['total'];
+$sqlUsers = "
+    SELECT
+        SUM(CASE WHEN role = 'Patient' THEN 1 ELSE 0 END) AS totalPatients,
+        SUM(CASE WHEN role = 'Doctor'  THEN 1 ELSE 0 END) AS totalDoctors
+    FROM Users;
+";
 
-// Patients
-$sqlPatients = "SELECT COUNT(*) AS total FROM Users WHERE role = 'Patient'";
-$stmt2 = sqlsrv_query($conn, $sqlPatients);
-$totalPatients = sqlsrv_fetch_array($stmt2, SQLSRV_FETCH_ASSOC)['total'];
+$userCounts = fetchOne($conn, $sqlUsers) ?? ['totalPatients' => 0, 'totalDoctors' => 0];
 
-// Doctors
-$sqlDoctors = "SELECT COUNT(*) AS total FROM Users WHERE role = 'Doctor'";
-$stmt3 = sqlsrv_query($conn, $sqlDoctors);
-$totalDoctors = sqlsrv_fetch_array($stmt3, SQLSRV_FETCH_ASSOC)['total'];
+$totalPatients = $userCounts['totalPatients'];
+$totalDoctors = $userCounts['totalDoctors'];
 
 // Appointments
-$sqlAppointments = "SELECT COUNT(*) AS total FROM Appointments";
-$stmt4 = sqlsrv_query($conn, $sqlAppointments);
-$totalAppointments = sqlsrv_fetch_array($stmt4, SQLSRV_FETCH_ASSOC)['total'];
+$sqlAppointments = "
+    SELECT
+        SUM(CASE WHEN status = 'Booked'    THEN 1 ELSE 0 END) AS totalBooked,
+        SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS totalCompleted,
+        SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS totalCancelled
+    FROM Appointments;
+";
+
+$apptCounts = fetchOne($conn, $sqlAppointments) ?? ['totalBooked' => 0, 'totalCompleted' => 0, 'totalCancelled' => 0];
+
+$totalBookedAppointments = $apptCounts['totalBooked'];
+$totalCompletedAppointments = $apptCounts['totalCompleted'];
+$totalCancelledAppointments = $apptCounts['totalCancelled'];
+
+
+function fetchOne($conn, $sql)
+{
+    $stmt = sqlsrv_query($conn, $sql);
+    if ($stmt === false) return null;
+    return sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+}
 
 include __DIR__ . '/components/header.php';
 ?>
@@ -40,12 +56,6 @@ include __DIR__ . '/components/header.php';
 
         <!-- Cards -->
         <div class="summary-grid">
-            <div class="summary-card">
-                <div class="icon"><i class="fa-solid fa-person"></i></div>
-                <div class="label">Total Users</div>
-                <div class="value"><?php echo $totalUsers; ?></div>
-            </div>
-
             <div class="summary-card">
                 <div class="icon">🧑‍💼</div>
                 <div class="label">Total Patients</div>
@@ -60,8 +70,20 @@ include __DIR__ . '/components/header.php';
 
             <div class="summary-card">
                 <div class="icon">📅</div>
-                <div class="label">Total Appointments</div>
-                <div class="value"><?php echo $totalAppointments; ?></div>
+                <div class="label">Total Booked Appointments</div>
+                <div class="value"><?php echo $totalBookedAppointments; ?></div>
+            </div>
+
+            <div class="summary-card">
+                <div class="icon">✅</div>
+                <div class="label">Total Completed Appointments</div>
+                <div class="value"><?php echo $totalCompletedAppointments; ?></div>
+            </div>
+
+            <div class="summary-card">
+                <div class="icon">❌</div>
+                <div class="label">Total Cancelled Appointments</div>
+                <div class="value"><?php echo $totalCancelledAppointments; ?></div>
             </div>
         </div>
     </div>
