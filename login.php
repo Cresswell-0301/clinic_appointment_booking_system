@@ -6,10 +6,16 @@ $pageTitle = 'Login';
 require_once __DIR__ . '/includes/db.php';
 
 $error = '';
+$success = '';
 
 if (isset($_SESSION['login_error'])) {
     $error = $_SESSION['login_error'];
     unset($_SESSION['login_error']);
+}
+
+if (isset($_SESSION['registration_success'])) {
+    $success = $_SESSION['registration_success'];
+    unset($_SESSION['registration_success']);
 }
 
 if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -146,6 +152,15 @@ include __DIR__ . '/components/header.php';
             text-align: center;
         }
 
+        .success-message {
+            background: #c8e6c9;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
         .link-row {
             margin-top: 12px;
             text-align: center;
@@ -166,6 +181,12 @@ include __DIR__ . '/components/header.php';
 
     <div class="login-container">
         <h2>Login</h2>
+
+        <?php if ($success !== ''): ?>
+            <div class="success-message">
+                <?php echo htmlspecialchars($success); ?>
+            </div>
+        <?php endif; ?>
 
         <?php if ($error !== ''): ?>
             <div class="error-message">
