@@ -50,6 +50,7 @@ BEGIN
         doctor_id       INT  NOT NULL,
         available_date  DATE NOT NULL,
         available_time  TIME NOT NULL,
+        is_booked       BIT  NOT NULL DEFAULT 0,
 
         CONSTRAINT FK_DoctorAvailability_Doctors
             FOREIGN KEY (doctor_id) REFERENCES dbo.Doctors(doctor_id)
