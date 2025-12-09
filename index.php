@@ -19,7 +19,7 @@ include __DIR__ . '/components/header.php';
 </head>
 
 <body>
-    <section class="hero">
+    <section class="main-section">
         <h2>Welcome to the Clinic Appointment Booking System</h2>
         <p>Manage appointments efficiently with a secure and user-friendly platform.</p>
 

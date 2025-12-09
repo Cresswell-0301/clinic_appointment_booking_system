@@ -13,11 +13,12 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars($fullTitle); ?></title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
-<body>
+<body class="<?php echo ($userRole === 'Admin') ? 'admin-layout' : ''; ?>">
     <header class="navbar">
-        <h1>Clinic Appointment System</h1>
+        <h1>CAS</h1>
 
         <nav>
             <!-- Home / Dashboard -->
@@ -54,12 +55,32 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
 
             <!-- Admin -->
             <?php if ($userRole === 'Admin'): ?>
-                <a href="admin_users.php">Users</a>
-                <a href="admin_doctor_availability.php">Doctor Availability</a>
+                <div class="admin-menu">
+                    <a href="admin_dashboard.php"
+                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_dashboard.php' ? 'active' : ''; ?>">
+                        Dashboard
+                    </a>
+                    <a href="admin_users.php"
+                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_users.php' ? 'active' : ''; ?>">
+                        Users
+                    </a>
+                    <a href="admin_doctor_availability.php"
+                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_doctor_availability.php' ? 'active' : ''; ?>">
+                        Doctor Availability
+                    </a>
+                    <a href="admin_appointments.php"
+                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_appointments.php' ? 'active' : ''; ?>">
+                        All Appointments
+                    </a>
+                </div>
+
+                <div class="admin-logout">
+                    <a href="logout.php">Logout</a>
+                </div>
             <?php endif; ?>
 
             <!-- Logout -->
-            <?php if ($userRole): ?>
+            <?php if ($userRole && $userRole !== 'Admin'): ?>
                 <a href="logout.php">Logout</a>
             <?php endif; ?>
         </nav>
