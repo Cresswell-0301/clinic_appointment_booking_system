@@ -45,12 +45,12 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
 
             <!-- Patient -->
             <?php if ($userRole === 'Patient'): ?>
-                <a href="appointments.php">My Appointments</a>
+                <a href="view_appointment.php">My Appointments</a>
             <?php endif; ?>
 
             <!-- Doctor -->
             <?php if ($userRole === 'Doctor'): ?>
-                <a href="doctor_view_appointments.php">Appointments</a>
+                <a href="doctor_update_appointment.php">Appointments</a>
 
                 <a href="doctor_schedule.php">Schedule</a>
             <?php endif; ?>

@@ -15,12 +15,16 @@ $conn = getDbConnection();
 $patientId = $_SESSION['user_id'];
 $today = date('Y-m-d');
 
-// Tdy Appointments
+// 1. Today's Appointments
+// FIX: Added "AND A.status = 'Booked'" so cancelled appts don't show up
 $sqlToday = "
     SELECT A.appointment_id, A.appointment_date, A.appointment_time, U.full_name AS doctor_name
     FROM Appointments A
-    JOIN Users U ON A.doctor_id = U.user_id
-    WHERE A.patient_id = ? AND A.appointment_date = ?
+    JOIN Doctors D ON A.doctor_id = D.doctor_id
+    JOIN Users U ON D.user_id = U.user_id
+    WHERE A.patient_id = ? 
+    AND A.appointment_date = ? 
+    AND A.status = 'Booked'
     ORDER BY A.appointment_time ASC
 ";
 
@@ -34,12 +38,16 @@ while ($row = sqlsrv_fetch_array($stmtToday, SQLSRV_FETCH_ASSOC)) {
     $todaysAppointments[] = $row;
 }
 
-// Upcoming Appointment
+// 2. Next Upcoming Appointment
+// FIX: Added "AND A.status = 'Booked'"
 $sqlNext = "
     SELECT TOP 1 A.appointment_id, A.appointment_date, A.appointment_time, U.full_name AS doctor_name
     FROM Appointments A
-    JOIN Users U ON A.doctor_id = U.user_id
-    WHERE A.patient_id = ? AND A.appointment_date > ?
+    JOIN Doctors D ON A.doctor_id = D.doctor_id
+    JOIN Users U ON D.user_id = U.user_id
+    WHERE A.patient_id = ? 
+    AND A.appointment_date > ? 
+    AND A.status = 'Booked'
     ORDER BY A.appointment_date ASC, A.appointment_time ASC
 ";
 
@@ -80,6 +88,7 @@ include __DIR__ . '/components/header.php';
             border-radius: 6px;
             margin-bottom: 12px;
             background: #f8f9fa;
+            border-left: 5px solid #1e88e5; /* Added a blue accent */
         }
 
         .dashboard-links a {
@@ -105,10 +114,9 @@ include __DIR__ . '/components/header.php';
     <div class="dashboard-container">
         <h2>Welcome, <?php echo htmlspecialchars($_SESSION['full_name']); ?></h2>
 
-        <!-- Tdy Appointments -->
         <div class="section-title">Today's Appointments</div>
         <?php if (empty($todaysAppointments)): ?>
-            <p>No appointments for today.</p>
+            <p style="color: #666; font-style: italic;">No active appointments for today.</p>
         <?php else: ?>
             <?php foreach ($todaysAppointments as $appt): ?>
                 <div class="appointment-card">
@@ -118,7 +126,6 @@ include __DIR__ . '/components/header.php';
             <?php endforeach; ?>
         <?php endif; ?>
 
-        <!-- Upcoming Appointment -->
         <div class="section-title">Next Upcoming Appointment</div>
         <?php if ($nextAppointment): ?>
             <div class="appointment-card">
@@ -127,15 +134,16 @@ include __DIR__ . '/components/header.php';
                 <strong>Doctor:</strong> <?= htmlspecialchars($nextAppointment['doctor_name']) ?>
             </div>
         <?php else: ?>
-            <p>No upcoming appointments.</p>
+            <p style="color: #666; font-style: italic;">No upcoming appointments found.</p>
         <?php endif; ?>
 
         <div class="dashboard-links">
-            <a href="appointments.php">View My Appointments</a>
+            <a href="view_appointment.php">View My Appointments</a>
             <a href="book_appointment.php">Book a New Appointment</a>
+            <a href="reschedule_select.php">Reschedule My Appointments</a>
+            <a href="cancel_select.php">Cancel My Appointments</a>
         </div>
     </div>
 
 </body>
-
 </html>

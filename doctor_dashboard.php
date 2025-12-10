@@ -13,7 +13,7 @@ $conn = getDbConnection();
 
 $doctorId = $_SESSION['doctor_id'];
 
-// Today appointments
+// 1. Today appointments
 $sqlToday = "
     SELECT COUNT(*) AS totalToday
     FROM Appointments
@@ -22,7 +22,7 @@ $sqlToday = "
 ";
 $todayCount = fetchOne($conn, $sqlToday, [$doctorId])['totalToday'] ?? 0;
 
-// Pending appointments
+// 2. Pending appointments (Total Count)
 $sqlPending = "
     SELECT COUNT(*) AS pending
     FROM Appointments
@@ -31,7 +31,7 @@ $sqlPending = "
 ";
 $pending = fetchOne($conn, $sqlPending, [$doctorId])['pending'] ?? 0;
 
-// Completed appointments
+// 3. Completed appointments
 $sqlCompleted = "
     SELECT COUNT(*) AS completed
     FROM Appointments
@@ -40,17 +40,28 @@ $sqlCompleted = "
 ";
 $completed = fetchOne($conn, $sqlCompleted, [$doctorId])['completed'] ?? 0;
 
-// Upcoming appointment
+// 4. Next Upcoming Appointment (The one we want to update)
 $sqlNext = "
-    SELECT TOP 1 appointment_date, appointment_time, patient_id
+    SELECT TOP 1 appointment_id, appointment_date, appointment_time, patient_id
     FROM Appointments
     WHERE doctor_id = ?
     AND appointment_date >= CAST(GETDATE() AS DATE)
     AND status = 'Booked'
     ORDER BY appointment_date, appointment_time;
 ";
+$nextAppt = fetchOne($conn, $sqlNext, [$doctorId]);
 
-// Available schedule slots
+// Date conversion for display
+if ($nextAppt) {
+    if (!($nextAppt['appointment_date'] instanceof DateTime)) {
+        $nextAppt['appointment_date'] = new DateTime($nextAppt['appointment_date']);
+    }
+    if (!($nextAppt['appointment_time'] instanceof DateTime)) {
+        $nextAppt['appointment_time'] = new DateTime($nextAppt['appointment_time']);
+    }
+}
+
+// 5. Available schedule slots
 $sqlSchedule = "
     SELECT COUNT(*) AS totalAvailable
     FROM DoctorAvailability
@@ -58,8 +69,7 @@ $sqlSchedule = "
     AND available_date >= CAST(GETDATE() AS DATE)
     AND is_booked = 0;
 ";
-
-$nextAppt = fetchOne($conn, $sqlNext, [$doctorId]);
+$scheduleCount = fetchOne($conn, $sqlSchedule, [$doctorId])['totalAvailable'] ?? 0;
 
 include __DIR__ . '/components/header.php';
 ?>
@@ -90,16 +100,32 @@ include __DIR__ . '/components/header.php';
                 <div class="value"><?php echo $completed; ?></div>
             </div>
 
-            <div class="summary-card">
+            <div class="summary-card" style="border: 2px solid #1E88E5;">
                 <div class="icon">🔔</div>
                 <div class="label">Next Appointment</div>
-                <div class="value">
+                <div class="value" style="font-size: 1.1em;">
                     <?php
                     if ($nextAppt) {
-                        echo htmlspecialchars($nextAppt['appointment_date']->format('Y-m-d')) .
-                            " @ " . htmlspecialchars($nextAppt['appointment_time']);
+                        // Display Date & Time
+                        echo $nextAppt['appointment_date']->format('Y-m-d')
+                            . " <small>(" . $nextAppt['appointment_time']->format('H:i') . ")</small><br>";
+                        
+                        // The Update Button
+                        echo '<a href="doctor_update_appointment.php?id=' . $nextAppt['appointment_id'] . '" 
+                                 style="
+                                    display: inline-block;
+                                    margin-top: 5px;
+                                    padding: 5px 10px;
+                                    background-color: #1E88E5;
+                                    color: white;
+                                    font-size: 0.8em;
+                                    border-radius: 6px;
+                                    text-decoration: none;
+                                 ">
+                                 Update Status
+                              </a>';
                     } else {
-                        echo "-";
+                        echo "<span style='color:#999;'>No upcoming bookings</span>";
                     }
                     ?>
                 </div>
@@ -108,12 +134,7 @@ include __DIR__ . '/components/header.php';
             <div class="summary-card">
                 <div class="icon">📋</div>
                 <div class="label">Available Slots</div>
-                <div class="value">
-                    <?php
-                    $scheduleCount = fetchOne($conn, $sqlSchedule, [$doctorId])['totalAvailable'] ?? 0;
-                    echo $scheduleCount;
-                    ?>
-                </div>
+                <div class="value"><?php echo $scheduleCount; ?></div>
             </div>
         </div>
     </div>
