@@ -1,5 +1,4 @@
 <?php
-// book_appointment.php
 session_start();
 
 require_once __DIR__ . '/includes/db.php';
@@ -95,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_submit'])) {
                     }
 
                     $success = 'Appointment booked successfully.';
+
                 } catch (Exception $e) {
                     // rollback on any error
                     sqlsrv_rollback($conn);
@@ -112,7 +112,15 @@ if ($selectedDoctorId > 0) {
     $slotsSql = "
         SELECT availability_id, available_date, available_time
         FROM DoctorAvailability
-        WHERE doctor_id = ? AND is_booked = 0 AND available_date >= CONVERT(date, GETDATE())
+        WHERE doctor_id = ? 
+        AND is_booked = 0 
+        AND (
+            available_date > CONVERT(date, GETDATE())
+            OR (
+                available_date = CONVERT(date, GETDATE())
+                AND available_time >= CONVERT(time, GETDATE())
+            )
+        )
         ORDER BY available_date, available_time
     ";
     $availableSlots = fetchAll($conn, $slotsSql, [$selectedDoctorId]);

@@ -18,16 +18,24 @@ $sqlToday = "
     SELECT COUNT(*) AS totalToday
     FROM Appointments
     WHERE doctor_id = ?
-    AND CAST(appointment_date AS DATE) = CAST(GETDATE() AS DATE);
+    AND appointment_date = CAST(GETDATE() AS DATE)
+    AND (
+        appointment_time >= CAST(GETDATE() AS TIME)
+        OR status = 'Booked'
+    );
 ";
 $todayCount = fetchOne($conn, $sqlToday, [$doctorId])['totalToday'] ?? 0;
 
 // 2. Pending appointments (Total Count)
 $sqlPending = "
-    SELECT COUNT(*) AS pending
+    SELECT COUNT(*) AS totalToday
     FROM Appointments
     WHERE doctor_id = ?
-    AND status = 'Booked';
+    AND appointment_date = CAST(GETDATE() AS DATE)
+    AND (
+        appointment_time >= CAST(GETDATE() AS TIME)
+        OR status = 'Booked'
+    );
 ";
 $pending = fetchOne($conn, $sqlPending, [$doctorId])['pending'] ?? 0;
 
@@ -36,6 +44,7 @@ $sqlCompleted = "
     SELECT COUNT(*) AS completed
     FROM Appointments
     WHERE doctor_id = ?
+    AND appointment_date = CAST(GETDATE() AS DATE)
     AND status = 'Completed';
 ";
 $completed = fetchOne($conn, $sqlCompleted, [$doctorId])['completed'] ?? 0;
@@ -45,7 +54,13 @@ $sqlNext = "
     SELECT TOP 1 appointment_id, appointment_date, appointment_time, patient_id
     FROM Appointments
     WHERE doctor_id = ?
-    AND appointment_date >= CAST(GETDATE() AS DATE)
+    AND (
+        appointment_date > CAST(GETDATE() AS DATE)
+        OR (
+            appointment_date = CAST(GETDATE() AS DATE)
+            AND appointment_time >= CAST(GETDATE() AS TIME)
+        )
+    )
     AND status = 'Booked'
     ORDER BY appointment_date, appointment_time;
 ";
@@ -66,8 +81,14 @@ $sqlSchedule = "
     SELECT COUNT(*) AS totalAvailable
     FROM DoctorAvailability
     WHERE doctor_id = ?
-    AND available_date >= CAST(GETDATE() AS DATE)
-    AND is_booked = 0;
+    AND is_booked = 0
+    AND (
+        available_date > CAST(GETDATE() AS DATE)
+        OR (
+            available_date = CAST(GETDATE() AS DATE)
+            AND available_time >= CAST(GETDATE() AS TIME)
+        )
+    );
 ";
 $scheduleCount = fetchOne($conn, $sqlSchedule, [$doctorId])['totalAvailable'] ?? 0;
 
@@ -90,13 +111,13 @@ include __DIR__ . '/components/header.php';
 
             <div class="summary-card">
                 <div class="icon">🕒</div>
-                <div class="label">Pending Appointments</div>
+                <div class="label">Today Pending Appointments</div>
                 <div class="value"><?php echo $pending; ?></div>
             </div>
 
             <div class="summary-card">
                 <div class="icon">✅</div>
-                <div class="label">Completed Appointments</div>
+                <div class="label">Today Completed Appointments</div>
                 <div class="value"><?php echo $completed; ?></div>
             </div>
 
@@ -109,7 +130,7 @@ include __DIR__ . '/components/header.php';
                         // Display Date & Time
                         echo $nextAppt['appointment_date']->format('Y-m-d')
                             . " <small>(" . $nextAppt['appointment_time']->format('H:i') . ")</small><br>";
-                        
+
                         // The Update Button
                         echo '<a href="doctor_update_appointment.php?id=' . $nextAppt['appointment_id'] . '" 
                                  style="

@@ -130,7 +130,13 @@ $slotsSql = "
     FROM DoctorAvailability
     WHERE doctor_id = ? 
       AND is_booked = 0 
-      AND available_date >= CAST(GETDATE() AS DATE)
+      AND (
+            available_date > CONVERT(date, GETDATE())
+            OR (
+                available_date = CONVERT(date, GETDATE())
+                AND available_time >= CONVERT(time, GETDATE())
+            )
+      )
     ORDER BY available_date, available_time
 ";
 $availableSlots = fetchAll($conn, $slotsSql, [$doctorId]);

@@ -185,6 +185,13 @@ $sqlAvailability = "
     SELECT availability_id, available_date, available_time, is_booked
     FROM DoctorAvailability
     WHERE doctor_id = ?
+    AND (
+        available_date > CAST(GETDATE() AS DATE)
+        OR (
+            available_date = CAST(GETDATE() AS DATE)
+            AND available_time >= CAST(GETDATE() AS TIME)
+        )
+    )
     ORDER BY $sortColumn $sortOrder $orderExtra
 ";
 

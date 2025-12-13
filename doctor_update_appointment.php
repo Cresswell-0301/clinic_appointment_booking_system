@@ -69,7 +69,7 @@ if ((int)$appt['doctor_id'] !== $doctorId) {
 // 4. Handle Update Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $token = $_POST['csrf_token'] ?? '';
-    
+
     if (!validateCsrfToken($token)) {
         $errors[] = "Invalid session token. Please refresh.";
     } else {
@@ -79,17 +79,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
         if (!in_array($newStatus, $allowedStatuses, true)) {
             $errors[] = "Invalid status selected.";
         } else {
-            
+
             // START TRANSACTION
             // We are updating two tables (Appointments and DoctorAvailability), so we need a transaction.
             if (sqlsrv_begin_transaction($conn) === false) {
-                 $errors[] = "Failed to start transaction.";
+                $errors[] = "Failed to start transaction.";
             } else {
                 try {
                     // A. Update Appointment Status
                     $updateSql = "UPDATE Appointments SET status = ? WHERE appointment_id = ?";
                     $updateStmt = sqlsrv_prepare($conn, $updateSql, [$newStatus, $apptId]);
-                    
+
                     if (!$updateStmt || !sqlsrv_execute($updateStmt)) {
                         throw new Exception("Failed to update appointment status.");
                     }
@@ -98,30 +98,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
                     // If Cancelled -> Free the slot (is_booked = 0)
                     // If Booked    -> Lock the slot (is_booked = 1)
                     // If Completed -> Keep it locked (is_booked = 1) usually, as the time is passed/used.
-                    
+
                     $isBookedValue = -1; // -1 means do nothing to availability
 
                     if ($newStatus === 'Cancelled') {
                         $isBookedValue = 0; // Make slot available again
                     } elseif ($newStatus === 'Booked') {
                         $isBookedValue = 1; // Make slot booked again (in case of accidental cancel)
-                    } 
+                    }
                     // Note: If 'Completed', we usually leave it as booked/occupied so it can't be reused.
 
                     if ($isBookedValue !== -1) {
                         // We use the date and time from the fetched $appt to find the matching slot
                         $availSql = "
                             UPDATE DoctorAvailability 
-                            SET is_booked = ? 
-                            WHERE doctor_id = ? 
-                            AND available_date = ? 
-                            AND available_time = ?
+                            SET is_booked = $isBookedValue 
+                            WHERE doctor_id = $doctorId
+                            AND available_date = $appt[appointment_date]
+                            AND available_time = $appt[appointment_time]
                         ";
-                        
+
                         $availParams = [
-                            $isBookedValue, 
-                            $doctorId, 
-                            $appt['appointment_date'], 
+                            $isBookedValue,
+                            $doctorId,
+                            $appt['appointment_date'],
                             $appt['appointment_time']
                         ];
 
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
 
                     // Commit Transaction
                     sqlsrv_commit($conn);
-                    
+
                     $success = "Status updated to '{$newStatus}' successfully.";
                     $appt['status'] = $newStatus; // Update display immediately
 
@@ -151,9 +151,9 @@ include __DIR__ . '/components/header.php';
 
 <div class="content-wrapper">
     <div class="admin-dashboard">
-        
+
         <div class="form-container" style="max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            
+
             <div style="border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center;">
                 <h2 style="margin:0;">Manage Appointment</h2>
                 <span style="background:#eee; padding:5px 10px; border-radius:4px; font-size:0.8rem;">ID: <?php echo $apptId; ?></span>
@@ -181,7 +181,7 @@ include __DIR__ . '/components/header.php';
                 <tr>
                     <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight:bold;">Date:</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                        <?php 
+                        <?php
                         if ($appt['appointment_date'] instanceof DateTime) {
                             echo $appt['appointment_date']->format('Y-m-d');
                         } else {
@@ -193,7 +193,7 @@ include __DIR__ . '/components/header.php';
                 <tr>
                     <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight:bold;">Time:</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                        <?php 
+                        <?php
                         if ($appt['appointment_time'] instanceof DateTime) {
                             echo $appt['appointment_time']->format('H:i');
                         } else {
@@ -219,7 +219,7 @@ include __DIR__ . '/components/header.php';
 
             <form method="post" action="">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
-                
+
                 <div style="margin-bottom: 20px;">
                     <label for="status" style="display: block; margin-bottom: 8px; font-weight: bold;">Update Status:</label>
                     <select name="status" id="status" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">

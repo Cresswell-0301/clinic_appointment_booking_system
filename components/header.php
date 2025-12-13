@@ -52,7 +52,11 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
             <?php if ($userRole === 'Doctor'): ?>
                 <a href="doctor_update_appointment.php">Appointments</a>
 
-                <a href="doctor_schedule.php">Schedule</a>
+                <?php if (!strpos($_SERVER['PHP_SELF'], 'doctor_schedule.php')): ?>
+                    <a href="doctor_schedule.php">
+                        Scheduled
+                    </a>
+                <?php endif; ?>
             <?php endif; ?>
 
             <!-- Admin -->

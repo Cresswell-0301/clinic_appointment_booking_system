@@ -46,7 +46,7 @@ include __DIR__ . '/components/header.php';
 
     <?php if (empty($appointments)): ?>
         <p>No active appointments available to cancel.</p>
-        <a href="dashboard.php" style="color: #1E88E5;">Back to Dashboard</a>
+        <a href="patient_dashboard.php" style="color: #1E88E5;">Back to Dashboard</a>
     <?php else: ?>
 
     <table style="width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
