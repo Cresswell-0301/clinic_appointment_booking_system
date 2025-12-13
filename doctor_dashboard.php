@@ -92,6 +92,22 @@ $sqlSchedule = "
 ";
 $scheduleCount = fetchOne($conn, $sqlSchedule, [$doctorId])['totalAvailable'] ?? 0;
 
+// 6. Slot Taken count
+$sqlTakenSlots = "
+    SELECT COUNT(*) AS totalTaken
+    FROM DoctorAvailability
+    WHERE doctor_id = ?
+    AND is_booked = 1
+    AND (
+        available_date > CAST(GETDATE() AS DATE)
+        OR (
+            available_date = CAST(GETDATE() AS DATE)
+            AND available_time >= CAST(GETDATE() AS TIME)
+        )
+    );
+";
+$takenSlots = fetchOne($conn, $sqlTakenSlots, [$doctorId])['totalTaken'] ?? 0;
+
 include __DIR__ . '/components/header.php';
 ?>
 
@@ -156,6 +172,12 @@ include __DIR__ . '/components/header.php';
                 <div class="icon">📋</div>
                 <div class="label">Available Slots</div>
                 <div class="value"><?php echo $scheduleCount; ?></div>
+            </div>
+
+            <div class="summary-card">
+                <div class="icon">🔒</div>
+                <div class="label">Slots Taken</div>
+                <div class="value"><?php echo $takenSlots; ?></div>
             </div>
         </div>
     </div>
