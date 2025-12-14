@@ -20,8 +20,9 @@ BEGIN
         full_name      VARCHAR(100) NOT NULL,
         email          VARCHAR(100) NOT NULL,
         phone_number   VARCHAR(20)  NULL,
-        role           VARCHAR(20)  NOT NULL
-            CHECK (role IN ('Patient','Doctor','Admin'))
+        role           VARCHAR(20)  NOT NULL,
+        is_active      BIT          NOT NULL DEFAULT 1,
+            CHECK (role IN ('Patient','Doctor','Admin', 'SuperAdmin'))
     );
 END
 ";

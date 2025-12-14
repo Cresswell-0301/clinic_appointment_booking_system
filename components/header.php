@@ -13,10 +13,11 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars($fullTitle); ?></title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/components.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
-<body class="<?php echo ($userRole === 'Admin') ? 'admin-layout' : ''; ?>">
+<body class="<?php echo ($userRole === 'Admin' || $userRole === 'SuperAdmin') ? 'admin-layout' : ''; ?>">
     <header class="navbar">
         <h1>CAS</h1>
 
@@ -60,7 +61,7 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
             <?php endif; ?>
 
             <!-- Admin -->
-            <?php if ($userRole === 'Admin'): ?>
+            <?php if ($userRole === 'Admin' || $userRole === 'SuperAdmin'): ?>
                 <div class="admin-menu">
                     <a href="admin_dashboard.php"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_dashboard.php' ? 'active' : ''; ?>">
@@ -86,7 +87,7 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
             <?php endif; ?>
 
             <!-- Logout -->
-            <?php if ($userRole && $userRole !== 'Admin'): ?>
+            <?php if ($userRole && $userRole !== 'Admin' && $userRole !== 'SuperAdmin'): ?>
                 <a href="logout.php">Logout</a>
             <?php endif; ?>
         </nav>

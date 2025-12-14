@@ -79,6 +79,7 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                             exit;
 
                         case 'Admin':
+                        case 'SuperAdmin':
                             header('Location: admin_dashboard.php');
                             exit;
 

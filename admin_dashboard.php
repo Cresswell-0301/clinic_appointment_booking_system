@@ -2,7 +2,7 @@
 session_start();
 $pageTitle = 'Dashboard';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+if (!isset($_SESSION['user_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'SuperAdmin')) {
     header('Location: login.php');
     exit;
 }
