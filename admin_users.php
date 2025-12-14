@@ -11,6 +11,33 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION[
 require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
+// Filter Role
+$allowedRoles = ['All', 'Doctor', 'Patient'];
+$roleFilter = $_GET['role'] ?? 'All';
+
+if (!in_array($roleFilter, $allowedRoles)) {
+    $roleFilter = 'All';
+}
+// =====
+
+$searchEmail = substr(trim($_GET['email'] ?? ''), 0, 100);
+
+// Sort 
+$allowedSortColumns = [
+    'name'     => 'u.full_name',
+    'username' => 'u.username',
+    'email'    => 'u.email',
+    'role'     => 'u.role',
+    'status'   => 'u.is_active'
+];
+
+$sortKey = $_GET['sort'] ?? 'name';
+$sortOrder = strtolower($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
+
+$sortColumn = $allowedSortColumns[$sortKey] ?? 'u.full_name';
+// =====
+
+// Paginate
 $perPage = 12;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $page = max($page, 1);
@@ -22,12 +49,20 @@ $totalRow = fetchOne(
     SELECT COUNT(*) AS total
     FROM Users
     WHERE role IN ('Patient','Doctor')
-    "
+    " . ($roleFilter !== 'All' ? "AND role = ?" : "") . "
+    " . ($searchEmail !== '' ? "AND email LIKE ?" : ""),
+    array_merge(
+        $roleFilter !== 'All' ? [$roleFilter] : [],
+        $searchEmail !== '' ? ['%' . $searchEmail . '%'] : []
+    )
 );
+
 
 $totalUsers = $totalRow['total'];
 $totalPages = (int) ceil($totalUsers / $perPage);
+// =====
 
+// Fetch Users
 $sqlUsers = "
     SELECT 
         u.user_id,
@@ -40,11 +75,27 @@ $sqlUsers = "
     FROM Users u
     LEFT JOIN Doctors d ON d.user_id = u.user_id
     WHERE u.role IN ('Patient','Doctor')
-    ORDER BY u.role, u.full_name
+    " . ($roleFilter !== 'All' ? "AND u.role = ?" : "") . "
+    " . ($searchEmail !== '' ? "AND u.email LIKE ?" : "") . "
+    ORDER BY $sortColumn $sortOrder
     OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
 ";
 
-$users = fetchAll($conn, $sqlUsers, [$offset, $perPage]);
+$params = [];
+
+if ($roleFilter !== 'All') {
+    $params[] = $roleFilter;
+}
+
+if ($searchEmail !== '') {
+    $params[] = '%' . $searchEmail . '%';
+}
+
+$params[] = $offset;
+$params[] = $perPage;
+
+$users = fetchAll($conn, $sqlUsers, $params);
+// =====
 
 if (isset($_POST['create_user'])) {
 
@@ -215,6 +266,24 @@ if (isset($_GET['activate'])) {
     }
 }
 
+$nameArrow = $usernameArrow = $emailArrow = $roleArrow = $statusArrow = '<i class="fa-solid fa-angle-down"></i>';
+
+function arrow($key, $current, $order)
+{
+    if ($key === $current) {
+        return $order === 'ASC'
+            ? '<i class="fa-solid fa-angle-up"></i>'
+            : '<i class="fa-solid fa-angle-down"></i>';
+    }
+    return '<i class="fa-solid fa-angle-down"></i>';
+}
+
+$nameArrow     = arrow('name', $sortKey, $sortOrder);
+$usernameArrow = arrow('username', $sortKey, $sortOrder);
+$emailArrow    = arrow('email', $sortKey, $sortOrder);
+$roleArrow     = arrow('role', $sortKey, $sortOrder);
+$statusArrow   = arrow('status', $sortKey, $sortOrder);
+
 include __DIR__ . '/components/header.php';
 ?>
 <style>
@@ -339,6 +408,39 @@ include __DIR__ . '/components/header.php';
         <div class="admin-header">
             <h2>User Management</h2>
 
+            <div style="display:flex; gap:10px;">
+                <?php
+                $roles = ['All', 'Doctor', 'Patient'];
+
+                foreach ($roles as $r):
+                    $active = ($roleFilter === $r);
+                ?>
+                    <a href="?role=<?= $r ?>&sort=<?= $sortKey ?>&order=<?= strtolower($sortOrder) ?>&page=1"
+                        class="btn"
+                        style="<?= $active ? 'background:#1E88E5;color:white;' : 'background:#eee;color:#333;' ?>">
+                        <?= $r ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+
+            <form method="get" style="display:flex; gap:10px; align-items:center; justify-content:center;">
+                <input type="hidden" name="role" value="<?= htmlspecialchars($roleFilter) ?>">
+                <input type="hidden" name="sort" value="<?= htmlspecialchars($sortKey) ?>">
+                <input type="hidden" name="order" value="<?= strtolower($sortOrder) ?>">
+
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <input type="text" name="email"
+                        placeholder="Search by email"
+                        value="<?= htmlspecialchars($searchEmail) ?>"
+                        style="height:36px;padding:0 10px;border-radius:4px;border:1px solid #ccc;box-sizing:border-box;">
+
+                    <button type="submit" class="btn btn-primary"
+                        style="height:36px; padding:0 14px; display:inline-flex; align-items:center; justify-content:center; margin-top:0;">
+                        Search
+                    </button>
+                </div>
+            </form>
+
             <div>
                 <button class="btn btn-primary" onclick="openUserModal('Patient')">
                     + Patient
@@ -418,20 +520,57 @@ include __DIR__ . '/components/header.php';
 
         <table class="table-admin">
             <tr>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
+                <th>
+                    <a href="?sort=name&order=<?= ($sortKey === 'name' && $sortOrder === 'ASC') ? 'desc' : 'asc' ?>&page=<?= $page ?>"
+                        style="text-decoration: none; color: inherit;">
+                        Name <?= $nameArrow ?>
+                    </a>
+                </th>
+
+                <th>
+                    <a href="?sort=username&order=<?= ($sortKey === 'username' && $sortOrder === 'ASC') ? 'desc' : 'asc' ?>&page=<?= $page ?>"
+                        style="text-decoration: none; color: inherit;">
+                        Username <?= $usernameArrow ?>
+                    </a>
+                </th>
+
+                <th>
+                    <a href="?sort=email&order=<?= ($sortKey === 'email' && $sortOrder === 'ASC') ? 'desc' : 'asc' ?>&page=<?= $page ?>"
+                        style="text-decoration: none; color: inherit;">
+                        Email <?= $emailArrow ?>
+                    </a>
+                </th>
+
+                <?php if ($roleFilter === 'All'): ?>
+                    <th>
+                        <a href="?sort=role&order=<?= ($sortKey === 'role' && $sortOrder === 'ASC') ? 'desc' : 'asc' ?>&page=<?= $page ?>&role=<?= $roleFilter ?>"
+                            style="text-decoration:none;color:inherit;">
+                            Role <?= $roleArrow ?>
+                        </a>
+                    </th>
+                <?php endif; ?>
+
+                <th>
+                    <a href="?sort=status&order=<?= ($sortKey === 'status' && $sortOrder === 'ASC') ? 'desc' : 'asc' ?>&page=<?= $page ?>"
+                        style="text-decoration: none; color: inherit;">
+                        Status <?= $statusArrow ?>
+                    </a>
+                </th>
+
                 <th>Action</th>
             </tr>
+
 
             <?php foreach ($users as $u): ?>
                 <tr>
                     <td><?= htmlspecialchars($u['full_name']) ?></td>
                     <td><?= htmlspecialchars($u['username']) ?></td>
                     <td><?= htmlspecialchars($u['email']) ?></td>
-                    <td><?= $u['role'] ?></td>
+
+                    <?php if ($roleFilter === 'All'): ?>
+                        <td><?= $u['role'] ?></td>
+                    <?php endif; ?>
+
                     <td>
                         <?php if ($u['is_active']): ?>
                             <span class="badge badge-active">Active</span>
@@ -472,12 +611,16 @@ include __DIR__ . '/components/header.php';
     <?php if ($totalPages > 1): ?>
         <div style="margin-top:20px; text-align:center;">
             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <a href="?page=<?= $i ?>"
+                <a href="?page=<?= $i ?> 
+                &sort=<?= $sortKey ?> 
+                &order=<?= strtolower($sortOrder) ?> 
+                &role=<?= $roleFilter ?> 
+                &email=<?= urlencode($searchEmail) ?>"
                     style="
-                   margin: 0 5px;
-                   padding: 6px 12px;
-                   border-radius: 4px;
-                   text-decoration: none;
+                    margin: 0 5px;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    text-decoration: none;
                    <?= $i === $page ? 'background:#1E88E5;color:white;' : 'background:#eee;color:#333;' ?>
                ">
                     <?= $i ?>
