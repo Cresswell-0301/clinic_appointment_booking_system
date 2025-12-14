@@ -12,10 +12,18 @@ require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
 $sqlUsers = "
-    SELECT user_id, full_name, username, email, role, is_active
-    FROM Users
-    WHERE role IN ('Patient','Doctor')
-    ORDER BY role, full_name
+    SELECT 
+        u.user_id,
+        u.full_name,
+        u.username,
+        u.email,
+        u.role,
+        u.is_active,
+        d.specialization
+    FROM Users u
+    LEFT JOIN Doctors d ON d.user_id = u.user_id
+    WHERE u.role IN ('Patient','Doctor')
+    ORDER BY u.role, u.full_name
 ";
 
 $users = fetchAll($conn, $sqlUsers);
@@ -30,16 +38,15 @@ if (isset($_POST['create_user'])) {
     $role = $_POST['role'];
     $specialization = trim($_POST['specialization'] ?? '');
 
-    // ---------------- VALIDATION ----------------
     if ($fullName === '' || $username === '' || $email === '' || $password === '' || $confirmPassword === '' || $role === '') {
         $error = "All fields are required.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email format.";
     } elseif ($password !== $confirmPassword) {
         $error = "Passwords do not match.";
-    } elseif (strlen($password) < 12) {
+    } elseif ($password !== '' && strlen($password) < 12) {
         $error = "Password must be at least 12 characters.";
-    } elseif (!preg_match('/[!@#$%^&*(),.?":{}|<>]/', $password)) {
+    } elseif ($password !== '' && !preg_match('/[!@#$%^&*(),.?":{}|<>]/', $password)) {
         $error = "Password must contain at least one special character.";
     } elseif ($role === 'Doctor' && $specialization === '') {
         $error = "Specialization is required for doctors.";
@@ -114,7 +121,6 @@ if (isset($_POST['update_user'])) {
     $userId   = (int)$_POST['user_id'];
     $fullName = trim($_POST['full_name']);
     $role     = $_POST['role'];
-    $isActive = isset($_POST['is_active']) ? 1 : 0;
     $password = $_POST['password'];
 
     if ($password !== '') {
@@ -126,7 +132,7 @@ if (isset($_POST['update_user'])) {
             WHERE user_id = ?
         ";
 
-        $params = [$fullName, $role, $isActive, $passwordHash, $userId];
+        $params = [$fullName, $role, 1, $passwordHash, $userId];
     } else {
         $sql = "
             UPDATE Users
@@ -134,10 +140,26 @@ if (isset($_POST['update_user'])) {
             WHERE user_id = ?
         ";
 
-        $params = [$fullName, $role, $isActive, $userId];
+        $params = [$fullName, $role, 1, $userId];
     }
+
+    if ($role === 'Doctor') {
+        sqlsrv_query(
+            $conn,
+            "
+        IF EXISTS (SELECT 1 FROM Doctors WHERE user_id = ?)
+            UPDATE Doctors SET specialization = ? WHERE user_id = ?
+        ELSE
+            INSERT INTO Doctors (user_id, specialization) VALUES (?, ?)
+        ",
+            [$userId, $_POST['specialization'], $userId, $userId, $_POST['specialization']]
+        );
+    }
+
     sqlsrv_query($conn, $sql, $params);
-    $message = "User updated successfully.";
+    $message = $role . " updated successfully.";
+
+    header("Refresh:1; url=admin_users.php");
 }
 
 if (isset($_GET['delete'])) {
@@ -310,11 +332,13 @@ include __DIR__ . '/components/header.php';
 
             <div id="userModal" class="modal">
                 <div class="modal-content">
-                    <h3>
-                        Create <span id="modalRoleTitle"></span>
-                    </h3>
+                    <h3 id="modalRoleTitle"></h3>
 
                     <form method="post">
+                        <input type="hidden" name="mode" id="formMode" value="create">
+                        <input type="hidden" name="user_id" id="editUserId">
+                        <input type="hidden" name="role" id="roleHidden">
+
                         <div class="schedule-form-grid">
                             <div class="layout" style="grid-column: span 2;">
                                 <label style="text-align: left;">Full Name</label>
@@ -333,29 +357,24 @@ include __DIR__ . '/components/header.php';
 
                             <div class="layout">
                                 <label style="text-align: left;">Password</label>
-                                <input type="password" name="password" required>
+                                <input type="password" name="password">
                             </div>
 
                             <div class="layout">
                                 <label style="text-align: left;">Confirm Password</label>
-                                <input type="password" name="confirm_password" required>
+                                <input type="password" name="confirm_password">
                             </div>
 
                             <div id="specializationField" class="layout" style="display:none; grid-column: span 2;">
                                 <label>Specialization</label>
                                 <input type="text" name="specialization" id="specializationInput">
                             </div>
-
-                            <input type="hidden" name="role" id="roleHidden">
-
                         </div>
 
                         <div id="modalError" class="error-message" style="display:none; color:red; margin-top:10px;"></div>
 
                         <div class="btn-row">
-                            <button type="submit"
-                                name="create_user"
-                                class="btn btn-primary">
+                            <button type="submit" id="submitBtn" name="create_user" class="btn btn-primary">
                                 Create
                             </button>
 
@@ -403,10 +422,11 @@ include __DIR__ . '/components/header.php';
                     </td>
                     <td style="gap: 10px; display: flex; justify-content: center;">
                         <?php if ($u['is_active']): ?>
-                            <a href="admin_user_edit.php?id=<?= $u['user_id'] ?>"
-                                class="btn btn-warning">
+                            <button class="btn btn-warning"
+                                onclick='openEditUserModal(<?= json_encode($u) ?>)'>
                                 Edit
-                            </a>
+                            </button>
+
                             <?php if ($_SESSION['role'] === 'SuperAdmin'): ?>
                                 <a href="?delete=<?= $u['user_id'] ?>"
                                     class="btn btn-danger"
@@ -442,4 +462,23 @@ include __DIR__ . '/components/header.php';
             }
         });
     <?php endif; ?>
+
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        modal.style.display = "none";
+
+        const form = modal.querySelector("form");
+        if (form) {
+            form.reset();
+            document.getElementById("formMode").value = "create";
+            document.getElementById("editUserId").value = "";
+
+            document.querySelector("input[name='username']").disabled = false;
+            document.querySelector("input[name='email']").disabled = false;
+
+            const submitBtn = document.getElementById("submitBtn");
+            submitBtn.innerText = "Create";
+            submitBtn.name = "create_user";
+        }
+    }
 </script>
