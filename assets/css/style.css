@@ -148,6 +148,19 @@ body.admin-layout .navbar h1 {
     border-radius: 6px;
 }
 
+.admin-logout a {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    padding: 8px 0;
+}
+
+.admin-logout a:hover {
+    background-color: lightgray;
+    color: #c62828;
+    border-radius: 6px;
+}
+
 /* Main content area */
 body.admin-layout .content-wrapper {
     flex: 1;

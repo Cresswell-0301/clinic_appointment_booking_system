@@ -55,9 +55,13 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($row) {
                     session_regenerate_id(true);
 
-                    $_SESSION['is_active']  = $row['is_active'];
+                    $checkActiveSql = "
+                        SELECT is_active FROM Users
+                        WHERE user_id = ?
+                    ";
+                    $activeRow = fetchAll($conn, $checkActiveSql, [$row['user_id']])[0] ?? [];
 
-                    if (!$_SESSION['is_active']) {
+                    if (!$activeRow['is_active']) {
                         $_SESSION['login_error'] = 'Your account is inactive. Please contact the administrator.';
                         header('Location: login.php');
                         exit;

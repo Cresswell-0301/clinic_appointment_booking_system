@@ -23,15 +23,16 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
 
         <nav>
             <!-- Home / Dashboard -->
-            <?php if (strpos($_SERVER['PHP_SELF'], 'index.php') === false && strpos($_SERVER['PHP_SELF'], 'patient_dashboard.php') === false && strpos($_SERVER['PHP_SELF'], 'doctor_dashboard.php') === false && strpos($_SERVER['PHP_SELF'], 'admin_dashboard.php') === false): ?>
-                <a href=<?php
-                        echo isset($_SESSION['user_id']) ?
-                            ($_SESSION['role'] === 'Patient' ? 'patient_dashboard.php' : ($_SESSION['role'] === 'Doctor' ? 'doctor_dashboard.php' :
-                                'admin_dashboard.php')) :
-                            'index.php';
-                        ?>>
-                    <?php echo isset($_SESSION['user_id']) ? 'Dashboard' : 'Home'; ?>
-                </a>
+            <?php if ($userRole !== 'Admin' && $userRole !== 'SuperAdmin'): ?>
+                <?php if (strpos($_SERVER['PHP_SELF'], 'index.php') === false && strpos($_SERVER['PHP_SELF'], 'patient_dashboard.php') === false && strpos($_SERVER['PHP_SELF'], 'doctor_dashboard.php') === false): ?>
+                    <a href=<?php
+                            echo isset($_SESSION['user_id']) ?
+                                ($_SESSION['role'] === 'Patient' ? 'patient_dashboard.php' : ($_SESSION['role'] === 'Doctor' ? 'doctor_dashboard.php' : "")) :
+                                'index.php';
+                            ?>>
+                        <?php echo isset($_SESSION['user_id']) ? 'Dashboard' : 'Home'; ?>
+                    </a>
+                <?php endif; ?>
             <?php endif; ?>
 
             <!-- Login & Register -->
@@ -63,6 +64,10 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
             <!-- Admin -->
             <?php if ($userRole === 'Admin' || $userRole === 'SuperAdmin'): ?>
                 <div class="admin-menu">
+                    <a href="admin_dashboard.php" style="text-decoration: none;"
+                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_dashboard.php' ? 'active' : ''; ?>">
+                        Dashboard
+                    </a>
                     <a href="admin_users.php" style="text-decoration: none;"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_users.php' ? 'active' : ''; ?>">
                         Users
