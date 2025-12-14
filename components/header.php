@@ -63,10 +63,6 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
             <!-- Admin -->
             <?php if ($userRole === 'Admin' || $userRole === 'SuperAdmin'): ?>
                 <div class="admin-menu">
-                    <a href="admin_dashboard.php"
-                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_dashboard.php' ? 'active' : ''; ?>">
-                        Dashboard
-                    </a>
                     <a href="admin_users.php"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_users.php' ? 'active' : ''; ?>">
                         Users

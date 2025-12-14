@@ -560,51 +560,59 @@ include __DIR__ . '/components/header.php';
                 <th>Action</th>
             </tr>
 
-
-            <?php foreach ($users as $u): ?>
+            <?php if (empty($users)): ?>
                 <tr>
-                    <td><?= htmlspecialchars($u['full_name']) ?></td>
-                    <td><?= htmlspecialchars($u['username']) ?></td>
-                    <td><?= htmlspecialchars($u['email']) ?></td>
-
-                    <?php if ($roleFilter === 'All'): ?>
-                        <td><?= $u['role'] ?></td>
-                    <?php endif; ?>
-
-                    <td>
-                        <?php if ($u['is_active']): ?>
-                            <span class="badge badge-active">Active</span>
-                        <?php else: ?>
-                            <span class="badge badge-disabled">Disabled</span>
-                        <?php endif; ?>
-                    </td>
-                    <td style="gap: 10px; display: flex; justify-content: center;">
-                        <?php if ($u['is_active']): ?>
-                            <button class="btn btn-warning"
-                                onclick='openEditUserModal(<?= json_encode($u) ?>)'>
-                                Edit
-                            </button>
-
-                            <?php if ($_SESSION['role'] === 'SuperAdmin'): ?>
-                                <a href="?delete=<?= $u['user_id'] ?>"
-                                    class="btn btn-danger"
-                                    onclick="return confirm('Disable this user?')">
-                                    Disable
-                                </a>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <?php if ($_SESSION['role'] === 'SuperAdmin'): ?>
-                                <span class="btn btn-success"
-                                    onclick="if(confirm('Reactivate this user?')) { window.location='?activate=<?= $u['user_id'] ?>'; }">
-                                    Activate
-                                </span>
-                            <?php else: ?>
-                                <span class="btn btn-disabled">Disabled</span>
-                            <?php endif; ?>
-                        <?php endif; ?>
+                    <td colspan="<?= $roleFilter === 'All' ? 6 : 5 ?>"
+                        style="padding:30px; color:#777; font-style:italic;">
+                        No users found for email "<?= htmlspecialchars($searchEmail) ?>"
                     </td>
                 </tr>
-            <?php endforeach; ?>
+            <?php else: ?>
+                <?php foreach ($users as $u): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($u['full_name']) ?></td>
+                        <td><?= htmlspecialchars($u['username']) ?></td>
+                        <td><?= htmlspecialchars($u['email']) ?></td>
+
+                        <?php if ($roleFilter === 'All'): ?>
+                            <td><?= $u['role'] ?></td>
+                        <?php endif; ?>
+
+                        <td>
+                            <?php if ($u['is_active']): ?>
+                                <span class="badge badge-active">Active</span>
+                            <?php else: ?>
+                                <span class="badge badge-disabled">Disabled</span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="gap: 10px; display: flex; justify-content: center;">
+                            <?php if ($u['is_active']): ?>
+                                <button class="btn btn-warning"
+                                    onclick='openEditUserModal(<?= json_encode($u) ?>)'>
+                                    Edit
+                                </button>
+
+                                <?php if ($_SESSION['role'] === 'SuperAdmin'): ?>
+                                    <a href="?delete=<?= $u['user_id'] ?>"
+                                        class="btn btn-danger"
+                                        onclick="return confirm('Disable this user?')">
+                                        Disable
+                                    </a>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <?php if ($_SESSION['role'] === 'SuperAdmin'): ?>
+                                    <span class="btn btn-success"
+                                        onclick="if(confirm('Reactivate this user?')) { window.location='?activate=<?= $u['user_id'] ?>'; }">
+                                        Activate
+                                    </span>
+                                <?php else: ?>
+                                    <span class="btn btn-disabled">Disabled</span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </table>
     </div>
 
