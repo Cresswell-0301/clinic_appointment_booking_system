@@ -63,28 +63,28 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
             <!-- Admin -->
             <?php if ($userRole === 'Admin' || $userRole === 'SuperAdmin'): ?>
                 <div class="admin-menu">
-                    <a href="admin_users.php"
+                    <a href="admin_users.php" style="text-decoration: none;"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_users.php' ? 'active' : ''; ?>">
                         Users
                     </a>
-                    <a href="admin_doctor_availability.php"
+                    <a href="admin_doctor_availability.php" style="text-decoration: none;"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_doctor_availability.php' ? 'active' : ''; ?>">
                         Doctor Availability
                     </a>
-                    <a href="admin_appointments.php"
+                    <a href="admin_appointments.php" style="text-decoration: none;"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_appointments.php' ? 'active' : ''; ?>">
                         All Appointments
                     </a>
                 </div>
 
                 <div class="admin-logout">
-                    <a href="logout.php">Logout</a>
+                    <a href="logout.php" style="text-decoration: none;">Logout</a>
                 </div>
             <?php endif; ?>
 
             <!-- Logout -->
             <?php if ($userRole && $userRole !== 'Admin' && $userRole !== 'SuperAdmin'): ?>
-                <a href="logout.php">Logout</a>
+                <a href="logout.php" style="text-decoration: none;">Logout</a>
             <?php endif; ?>
         </nav>
     </header>

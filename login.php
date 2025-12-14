@@ -55,6 +55,14 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($row) {
                     session_regenerate_id(true);
 
+                    $_SESSION['is_active']  = $row['is_active'];
+
+                    if (!$_SESSION['is_active']) {
+                        $_SESSION['login_error'] = 'Your account is inactive. Please contact the administrator.';
+                        header('Location: login.php');
+                        exit;
+                    }
+
                     $_SESSION['user_id']    = $row['user_id'];
                     $_SESSION['full_name']  = $row['full_name'];
                     $_SESSION['email']      = $row['email'];
