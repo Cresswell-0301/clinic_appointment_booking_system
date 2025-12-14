@@ -116,86 +116,6 @@ function arrowIcon($key, $currentKey, $order)
 
 include __DIR__ . '/components/header.php';
 ?>
-<style>
-    .admin-container {
-        background: #fff;
-        padding: 25px;
-        border-radius: 10px;
-    }
-
-    .filter-bar {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
-        align-items: center;
-    }
-
-    .filter-bar input,
-    .filter-bar select {
-        height: 36px;
-        padding: 0 10px;
-    }
-
-    .table-admin {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .table-admin th,
-    .table-admin td {
-        padding: 12px;
-        border-bottom: 1px solid #eee;
-        text-align: center;
-    }
-
-    .table-admin th {
-        background: #f5f7fa;
-    }
-
-    .badge {
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 12px;
-    }
-
-    .badge-Pending {
-        background: #FFF3CD;
-        color: #856404;
-    }
-
-    .badge-Approved {
-        background: #D1ECF1;
-        color: #0C5460;
-    }
-
-    .badge-Completed {
-        background: #C8E6C9;
-        color: #256029;
-    }
-
-    .badge-Cancelled {
-        background: #FFCDD2;
-        color: #B71C1C;
-    }
-
-    .pagination {
-        display: flex;
-        gap: 6px;
-        margin-top: 15px;
-    }
-
-    .pagination a {
-        padding: 6px 10px;
-        border: 1px solid #ccc;
-        text-decoration: none;
-        border-radius: 4px;
-    }
-
-    .pagination .active {
-        background: #1E88E5;
-        color: #fff;
-    }
-</style>
 
 <div class="content-wrapper">
     <div class="admin-container">
@@ -290,7 +210,12 @@ include __DIR__ . '/components/header.php';
             <div class="pagination">
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <a href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"
-                        class="<?= $i === $page ? 'active' : '' ?>">
+                        class="<?= $i === $page ? 'active' : '' ?>"
+                        style=" 
+                        margin: 0 5px; 
+                        padding: 6px 12px; 
+                        border-radius: 4px; 
+                        text-decoration: none;">
                         <?= $i ?>
                     </a>
                 <?php endfor; ?>

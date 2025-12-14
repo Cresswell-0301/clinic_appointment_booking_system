@@ -84,3 +84,84 @@
 .btn-secondary:hover {
     background: #555;
 }
+
+/* ============== */
+
+.admin-container {
+    background: #fff;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.filter-bar input,
+.filter-bar select {
+    height: 36px;
+    padding: 0 10px;
+}
+
+.table-admin {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-admin th,
+.table-admin td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+}
+
+.table-admin th {
+    background: #f5f7fa;
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.badge-Pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-Approved {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-Completed {
+    background: #c8e6c9;
+    color: #256029;
+}
+
+.badge-Cancelled {
+    background: #ffcdd2;
+    color: #b71c1c;
+}
+
+.pagination {
+    display: flex;
+    gap: 6px;
+    margin-top: 15px;
+}
+
+.pagination a {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.pagination .active {
+    background: #1e88e5;
+    color: #fff;
+}

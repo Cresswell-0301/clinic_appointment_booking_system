@@ -614,29 +614,28 @@ include __DIR__ . '/components/header.php';
                 <?php endforeach; ?>
             <?php endif; ?>
         </table>
-    </div>
 
-    <?php if ($totalPages > 1): ?>
-        <div style="margin-top:20px; text-align:center;">
-            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <a href="?page=<?= $i ?> 
+        <?php if ($totalPages > 1): ?>
+            <div style="margin-top:20px; text-align:center;">
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <a href="?page=<?= $i ?> 
                 &sort=<?= $sortKey ?> 
                 &order=<?= strtolower($sortOrder) ?> 
                 &role=<?= $roleFilter ?> 
                 &email=<?= urlencode($searchEmail) ?>"
-                    style="
+                        style="
                     margin: 0 5px;
                     padding: 6px 12px;
                     border-radius: 4px;
                     text-decoration: none;
                    <?= $i === $page ? 'background:#1E88E5;color:white;' : 'background:#eee;color:#333;' ?>
                ">
-                    <?= $i ?>
-                </a>
-            <?php endfor; ?>
-        </div>
-    <?php endif; ?>
-
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <script src="assets/js/modal.js" defer>
