@@ -200,99 +200,6 @@ $availabilityList = fetchAll($conn, $sqlAvailability, [$doctorId]);
 include __DIR__ . '/components/header.php';
 ?>
 
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 30px;
-            border: 1px solid #888;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Title */
-        .modal-content h3 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        /* Form grid */
-        .schedule-form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px 20px;
-        }
-
-        /* items */
-        .full-width {
-            grid-column: span 2;
-        }
-
-        /* Labels */
-        .schedule-form-grid label {
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-
-        /* Inputs */
-        .schedule-form-grid input,
-        .schedule-form-grid select {
-            width: 100%;
-            padding: 7px 10px;
-            border: 1px solid #bbb;
-            border-radius: 5px;
-        }
-
-        /* Days list */
-        .day-checkbox-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px 15px;
-        }
-
-        .btn-row {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .btn-primary {
-            padding: 10px 20px;
-            border-radius: 6px;
-        }
-
-        .btn-secondary {
-            padding: 9px 20px;
-            background: #777;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .btn-secondary:hover {
-            background: #555;
-        }
-    </style>
-</head>
-
 <div class="content-wrapper">
 
     <div class="admin-dashboard">
@@ -302,7 +209,7 @@ include __DIR__ . '/components/header.php';
             <div class="success-message"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
 
-        <button class="btn-primary" style="margin-bottom:20px;" onclick="openScheduleModal()">
+        <button class="btn-primary" style="margin-bottom:20px;" onclick="openModal('scheduleModal')">
             Add Schedule
         </button>
 
@@ -407,7 +314,7 @@ include __DIR__ . '/components/header.php';
                             Generate Availability
                         </button>
 
-                        <button type="button" class="btn-secondary" onclick="closeScheduleModal()">
+                        <button type="button" class="btn-secondary" onclick="closeModal('scheduleModal')">
                             Close
                         </button>
                     </div>
@@ -495,38 +402,7 @@ include __DIR__ . '/components/header.php';
     </div>
 </div>
 
-<script>
-    function openScheduleModal() {
-        document.getElementById('scheduleModal').style.display = 'block';
-    }
-
-    function closeScheduleModal() {
-        const modal = document.getElementById('scheduleModal');
-        modal.style.display = 'none';
-
-        // Reset form values
-        const form = modal.querySelector('form');
-        if (form) form.reset();
-
-        // Clear old values
-        window.location.href = "doctor_schedule.php?reset=1";
-
-        // Clear error message
-        const err = document.getElementById('modalError');
-        if (err) {
-            err.style.display = "none";
-            err.innerText = "";
-        }
-    }
-
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-        var modal = document.getElementById('scheduleModal');
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    };
-
+<script src="assets/js/modal.js" defer>
     <?php if ($keepModalOpen): ?>
         document.addEventListener("DOMContentLoaded", function() {
             openScheduleModal();
@@ -538,7 +414,6 @@ include __DIR__ . '/components/header.php';
         });
     <?php endif; ?>
 </script>
-
 
 </body>
 
