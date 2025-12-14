@@ -11,6 +11,23 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION[
 require_once __DIR__ . '/includes/db.php';
 $conn = getDbConnection();
 
+$perPage = 12;
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = max($page, 1);
+$offset = ($page - 1) * $perPage;
+
+$totalRow = fetchOne(
+    $conn,
+    "
+    SELECT COUNT(*) AS total
+    FROM Users
+    WHERE role IN ('Patient','Doctor')
+    "
+);
+
+$totalUsers = $totalRow['total'];
+$totalPages = (int) ceil($totalUsers / $perPage);
+
 $sqlUsers = "
     SELECT 
         u.user_id,
@@ -24,9 +41,10 @@ $sqlUsers = "
     LEFT JOIN Doctors d ON d.user_id = u.user_id
     WHERE u.role IN ('Patient','Doctor')
     ORDER BY u.role, u.full_name
+    OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
 ";
 
-$users = fetchAll($conn, $sqlUsers);
+$users = fetchAll($conn, $sqlUsers, [$offset, $perPage]);
 
 if (isset($_POST['create_user'])) {
 
@@ -203,6 +221,7 @@ include __DIR__ . '/components/header.php';
     .admin-container {
         background: #fff;
         padding: 25px;
+        padding-top: 10px;
         border-radius: 10px;
     }
 
@@ -449,6 +468,24 @@ include __DIR__ . '/components/header.php';
             <?php endforeach; ?>
         </table>
     </div>
+
+    <?php if ($totalPages > 1): ?>
+        <div style="margin-top:20px; text-align:center;">
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <a href="?page=<?= $i ?>"
+                    style="
+                   margin: 0 5px;
+                   padding: 6px 12px;
+                   border-radius: 4px;
+                   text-decoration: none;
+                   <?= $i === $page ? 'background:#1E88E5;color:white;' : 'background:#eee;color:#333;' ?>
+               ">
+                    <?= $i ?>
+                </a>
+            <?php endfor; ?>
+        </div>
+    <?php endif; ?>
+
 </div>
 
 <script src="assets/js/modal.js" defer>
