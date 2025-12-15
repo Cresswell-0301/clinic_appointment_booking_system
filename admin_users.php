@@ -387,19 +387,6 @@ include __DIR__ . '/components/header.php';
         border-radius: 6px;
         margin-bottom: 15px;
     }
-
-    .schedule-form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        column-gap: 24px;
-        row-gap: 18px;
-    }
-
-    .layout {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-    }
 </style>
 
 <div class="content-wrapper">

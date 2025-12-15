@@ -79,3 +79,49 @@ function openEditUserModal(user) {
         specInput.value = "";
     }
 }
+
+function openBookingModal(data) {
+    document.getElementById("bm_availability_id").value = data.availability_id;
+    document.getElementById("bm_doctor_id").value = data.doctor_id;
+    document.getElementById("bm_date").value = data.date;
+    document.getElementById("bm_time").value = data.time;
+
+    document.getElementById("bm_doctor_name_view").innerText = data.doctor_name;
+    document.getElementById("bm_specialization_view").innerText = data.specialization ?? "-";
+    document.getElementById("bm_date_view").innerText = data.date;
+    document.getElementById("bm_time_view").innerText = data.time;
+
+    document.getElementById("bookingModal").style.display = "block";
+}
+
+function bindPatientDatalist() {
+    const input = document.getElementById("patient_search");
+    const hidden = document.getElementById("patient_id");
+    const list = document.getElementById("patient_list");
+    const hint = document.getElementById("patient_hint");
+
+    if (!input || !hidden || !list) return;
+
+    function resolvePatientId() {
+        const val = input.value.trim();
+        hidden.value = "";
+        if (hint) hint.style.display = "none";
+
+        const options = list.querySelectorAll("option");
+        for (const opt of options) {
+            if ((opt.value || "").trim() === val) {
+                hidden.value = opt.dataset.id || "";
+                break;
+            }
+        }
+
+        if (!hidden.value && val !== "") {
+            if (hint) hint.style.display = "block";
+        }
+    }
+
+    input.addEventListener("input", resolvePatientId);
+    input.addEventListener("change", resolvePatientId);
+}
+
+document.addEventListener("DOMContentLoaded", bindPatientDatalist);

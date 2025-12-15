@@ -50,7 +50,7 @@ if ($status === 'Booked') {
 }
 
 $page     = max(1, (int)($_GET['page'] ?? 1));
-$pageSize = 12;
+$pageSize = 10;
 $offset   = ($page - 1) * $pageSize;
 
 $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -58,6 +58,7 @@ $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 $sql = "
 SELECT
     da.availability_id,
+    da.doctor_id,
     da.available_date,
     da.available_time,
     da.is_booked,
@@ -99,6 +100,16 @@ $doctors = fetchAll(
     "
 );
 
+$patients = fetchAll(
+    $conn,
+    "
+    SELECT user_id, full_name, email AS user_email
+    FROM Users
+    WHERE role = 'Patient' AND is_active = 1
+    ORDER BY full_name
+    "
+);
+
 function arrowIcon($key, $current, $order)
 {
     if ($key !== $current) {
@@ -107,6 +118,43 @@ function arrowIcon($key, $current, $order)
     return $order === 'ASC'
         ? '<i class="fa-solid fa-angle-up"></i>'
         : '<i class="fa-solid fa-angle-down"></i>';
+}
+
+if (isset($_POST['book_appointment'])) {
+
+    $availabilityId = (int)$_POST['availability_id'];
+    $patientId      = (int)$_POST['patient_id'];
+    $doctorId       = (int)$_POST['doctor_id'];
+    $date           = $_POST['appointment_date'];
+    $time           = $_POST['appointment_time'];
+
+    sqlsrv_begin_transaction($conn);
+
+    try {
+
+        sqlsrv_query(
+            $conn,
+            "
+            INSERT INTO Appointments
+                (patient_id, doctor_id, appointment_date, appointment_time, status)
+            VALUES (?, ?, ?, ?, 'Booked')
+            ",
+            [$patientId, $doctorId, $date, $time]
+        );
+
+        sqlsrv_query(
+            $conn,
+            "UPDATE DoctorAvailability SET is_booked = 1 WHERE availability_id = ?",
+            [$availabilityId]
+        );
+
+        sqlsrv_commit($conn);
+        header("Location: admin_doctor_availability.php");
+        exit;
+    } catch (Exception $e) {
+        sqlsrv_rollback($conn);
+        $error = "Booking failed.";
+    }
 }
 
 include __DIR__ . '/components/header.php';
@@ -145,9 +193,81 @@ include __DIR__ . '/components/header.php';
                     Clear
                 </button>
             <?php endif; ?>
-
         </form>
 
+        <!-- Book Form -->
+        <div id="bookingModal" class="modal">
+            <div class="modal-content">
+                <h3>Book Appointment</h3>
+
+                <form method="post">
+                    <input type="hidden" name="availability_id" id="bm_availability_id">
+                    <input type="hidden" name="doctor_id" id="bm_doctor_id">
+                    <input type="hidden" name="appointment_date" id="bm_date">
+                    <input type="hidden" name="appointment_time" id="bm_time">
+
+                    <div class="schedule-form-grid">
+                        <div class="layout">
+                            <label>Doctor</label>
+                            <div class="view-field" id="bm_doctor_name_view">—</div>
+                        </div>
+
+                        <div class="layout">
+                            <label>Specialization</label>
+                            <div class="view-field" id="bm_specialization_view">—</div>
+                        </div>
+
+                        <div class="layout">
+                            <label>Date</label>
+                            <div class="view-field" id="bm_date_view">—</div>
+                        </div>
+
+                        <div class="layout">
+                            <label>Time</label>
+                            <div class="view-field" id="bm_time_view">—</div>
+                        </div>
+
+                        <div class="layout" style="grid-column: span 2;">
+                            <label>Patient</label>
+
+                            <input type="text"
+                                id="patient_search"
+                                list="patient_list"
+                                placeholder="Type patient name/email..."
+                                autocomplete="off"
+                                required
+                                style="width: 100%; padding: 8px; box-sizing: border-box;">
+
+                            <datalist id="patient_list">
+                                <?php foreach ($patients as $p): ?>
+                                    <option
+                                        value="<?= htmlspecialchars($p['full_name']) ?>"
+                                        data-id="<?= (int)$p['user_id'] ?>">
+                                        <?= htmlspecialchars($p['user_email']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </datalist>
+
+                            <input type="hidden" name="patient_id" id="patient_id" required>
+                            <small id="patient_hint" style="color:#b71c1c; display:none; margin-top:6px;">
+                                Please pick a patient from the list.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="btn-row">
+                        <button type="submit" name="book_appointment" class="btn btn-primary">
+                            Confirm Booking
+                        </button>
+
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('bookingModal')">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <table class="table-admin">
             <tr>
@@ -192,6 +312,7 @@ include __DIR__ . '/components/header.php';
                         Status <?= arrowIcon('status', $sortKey, $order) ?>
                     </a>
                 </th>
+                <th>Action</th>
             </tr>
 
             <?php if (empty($rows)): ?>
@@ -226,6 +347,28 @@ include __DIR__ . '/components/header.php';
                                 <span class="badge badge-Completed">Available</span>
                             <?php endif; ?>
                         </td>
+                        <td>
+                            <?php if (!$r['is_booked']): ?>
+                                <button class="btn btn-primary" style="margin-top: 0;"
+                                    onclick='openBookingModal(<?= json_encode([
+                                                                    "availability_id" => $r["availability_id"],
+                                                                    "doctor_id" => $r["doctor_id"],
+                                                                    "doctor_name"     => $r["doctor_name"],
+                                                                    "specialization"  => $r["specialization"],
+                                                                    "date"            => ($r["available_date"] instanceof DateTime)
+                                                                        ? $r["available_date"]->format("Y-m-d")
+                                                                        : $r["available_date"],
+                                                                    "time"            => ($r["available_time"] instanceof DateTime)
+                                                                        ? $r["available_time"]->format("H:i")
+                                                                        : substr((string)$r["available_time"], 0, 5)
+                                                                ]) ?>)'>
+                                    Book
+                                </button>
+
+                            <?php else: ?>
+                                <span style="opacity: 0.6;">N/A</span>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -246,6 +389,32 @@ include __DIR__ . '/components/header.php';
                 <?php endfor; ?>
             </div>
         <?php endif; ?>
-
     </div>
 </div>
+
+<script src="assets/js/modal.js">
+    document.addEventListener("submit", function(e) {
+        if (e.target.closest("#bookingModal form")) {
+            const pid = document.getElementById("patient_id");
+            if (!pid || !pid.value) {
+                e.preventDefault();
+                alert("Please select a patient from the list.");
+            }
+        }
+    });
+
+    document.getElementById("patient_search").addEventListener("input", function() {
+        const input = this.value;
+        const list = document.getElementById("patient_list");
+        const hidden = document.getElementById("patient_id");
+
+        hidden.value = ""; // reset
+
+        for (const option of list.options) {
+            if (option.value === input) {
+                hidden.value = option.dataset.id;
+                break;
+            }
+        }
+    });
+</script>
