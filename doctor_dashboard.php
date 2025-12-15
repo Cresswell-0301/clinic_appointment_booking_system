@@ -108,6 +108,25 @@ $sqlTakenSlots = "
 ";
 $takenSlots = fetchOne($conn, $sqlTakenSlots, [$doctorId])['totalTaken'] ?? 0;
 
+// 7. Get Today's Appointments with Patient Details
+$sqlTodayAppointments = "
+    SELECT 
+        a.appointment_id,
+        a.appointment_date,
+        a.appointment_time,
+        a.status,
+        u.user_id,
+        u.full_name,
+        u.email,
+        u.phone_number
+    FROM Appointments a
+    INNER JOIN Users u ON a.patient_id = u.user_id
+    WHERE a.doctor_id = ?
+    AND a.appointment_date = CAST(GETDATE() AS DATE)
+    ORDER BY a.appointment_time ASC
+";
+$todayAppointments = fetchAll($conn, $sqlTodayAppointments, [$doctorId]);
+
 include __DIR__ . '/components/header.php';
 ?>
 
@@ -119,11 +138,14 @@ include __DIR__ . '/components/header.php';
 
         <div class="summary-grid">
 
-            <div class="summary-card">
-                <div class="icon">📅</div>
-                <div class="label">Today Appointments</div>
-                <div class="value"><?php echo $todayCount; ?></div>
-            </div>
+            <a href="view_appointment_list.php" style="text-decoration: none; color: inherit;">
+                <div class="summary-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(0,0,0,0.1)';">
+                    <div class="icon">📅</div>
+                    <div class="label">Today Appointments</div>
+                    <div class="value"><?php echo $todayCount; ?></div>
+                    <small style="color: #1e88e5; font-weight: bold; margin-top: 8px; display: block;">Click to view list →</small>
+                </div>
+            </a>
 
             <div class="summary-card">
                 <div class="icon">🕒</div>
