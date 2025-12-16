@@ -62,7 +62,13 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $activeRow = fetchAll($conn, $checkActiveSql, [$row['user_id']])[0] ?? [];
 
                     if (!$activeRow['is_active']) {
-                        $_SESSION['login_error'] = 'Your account is inactive. Please contact the administrator.';
+                        if ($row['role'] === 'Admin') {
+                            $affectedUserRole = 'System Administrator';
+                        } elseif ($row['role'] === 'Patient' || $row['role'] === 'Doctor') {
+                            $affectedUserRole = 'Administrator';
+                        }
+
+                        $_SESSION['login_error'] = "Your account is inactive. Please contact the $affectedUserRole.";
                         header('Location: login.php');
                         exit;
                     }
