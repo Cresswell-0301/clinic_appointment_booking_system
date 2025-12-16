@@ -299,7 +299,7 @@ include __DIR__ . '/components/header.php';
                         <!-- Row 4: Duration -->
                         <div class="full-width">
                             <label>Slot Duration (minutes)</label>
-                            <select name="duration" required>
+                            <select name="duration" required style="width: 100%;">
                                 <option value="30" <?php echo $old['duration'] == "30" ? "selected" : ""; ?>>30 minutes</option>
                                 <option value="60" <?php echo $old['duration'] == "60" ? "selected" : ""; ?>>60 minutes</option>
                             </select>
