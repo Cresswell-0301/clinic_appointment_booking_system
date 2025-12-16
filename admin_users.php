@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-$pageTitle = 'User Management';
+$pageTitle = 'Users Management';
 
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION['role'] !== 'SuperAdmin')) {
     header('Location: login.php');
@@ -120,16 +120,27 @@ if (isset($_POST['create_user'])) {
     } elseif ($role === 'Doctor' && $specialization === '') {
         $error = "Specialization is required for doctors.";
     } else {
-
-        // Username check
-        $exists = fetchOne(
+        $conflict = fetchOne(
             $conn,
-            "SELECT 1 FROM Users WHERE username = ?",
-            [$username]
+            "
+            SELECT
+                CASE
+                    WHEN username = ? THEN 'username'
+                    WHEN email = ? THEN 'email'
+                END AS conflict
+            FROM Users
+            WHERE (username = ? OR email = ?)
+              AND user_id <> ?
+            ",
+            [$username, $email, $username, $email, $userId]
         );
 
-        if ($exists) {
-            $error = "Username already exists.";
+        if ($conflict) {
+            if ($conflict['conflict'] === 'username') {
+                $error = "Username already exists.";
+            } else {
+                $error = "Email already exists.";
+            }
         } else {
             sqlsrv_begin_transaction($conn);
 
@@ -192,42 +203,64 @@ if (isset($_POST['update_user'])) {
     $role     = $_POST['role'];
     $password = $_POST['password'];
 
-    if ($password !== '') {
-        $passwordHash = hash('sha256', $password);
+    $conflict = fetchOne(
+        $conn,
+        "
+            SELECT
+                CASE
+                    WHEN username = ? THEN 'username'
+                    WHEN email = ? THEN 'email'
+                END AS conflict
+            FROM Users
+            WHERE (username = ? OR email = ?)
+              AND user_id <> ?
+            ",
+        [$username, $email, $username, $email, $userId]
+    );
 
-        $sql = "
+    if ($conflict) {
+        if ($conflict['conflict'] === 'username') {
+            $error = "Username already exists.";
+        } else {
+            $error = "Email already exists.";
+        }
+    } else {
+        if ($password !== '') {
+            $passwordHash = hash('sha256', $password);
+
+            $sql = "
             UPDATE Users
             SET full_name = ?, role = ?, is_active = ?, password_hash = ?
             WHERE user_id = ?
         ";
 
-        $params = [$fullName, $role, 1, $passwordHash, $userId];
-    } else {
-        $sql = "
+            $params = [$fullName, $role, 1, $passwordHash, $userId];
+        } else {
+            $sql = "
             UPDATE Users
             SET full_name = ?, role = ?, is_active = ?
             WHERE user_id = ?
         ";
 
-        $params = [$fullName, $role, 1, $userId];
-    }
+            $params = [$fullName, $role, 1, $userId];
+        }
 
-    if ($role === 'Doctor') {
-        sqlsrv_query(
-            $conn,
-            "
+        if ($role === 'Doctor') {
+            sqlsrv_query(
+                $conn,
+                "
         IF EXISTS (SELECT 1 FROM Doctors WHERE user_id = ?)
             UPDATE Doctors SET specialization = ? WHERE user_id = ?
         ELSE
             INSERT INTO Doctors (user_id, specialization) VALUES (?, ?)
         ",
-            [$userId, $_POST['specialization'], $userId, $userId, $_POST['specialization']]
-        );
+                [$userId, $_POST['specialization'], $userId, $userId, $_POST['specialization']]
+            );
+        }
+
+        sqlsrv_query($conn, $sql, $params);
+        $message = $role . " updated successfully.";
     }
-
-    sqlsrv_query($conn, $sql, $params);
-    $message = $role . " updated successfully.";
-
     header("Refresh:1; url=admin_users.php");
 }
 

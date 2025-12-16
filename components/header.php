@@ -70,7 +70,7 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
                     </a>
                     <a href="admin_users.php" style="text-decoration: none;"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_users.php' ? 'active' : ''; ?>">
-                        Users
+                        Users Management
                     </a>
                     <a href="admin_doctor_availability.php" style="text-decoration: none;"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_doctor_availability.php' ? 'active' : ''; ?>">
@@ -80,6 +80,13 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_appointments.php' ? 'active' : ''; ?>">
                         All Appointments
                     </a>
+
+                    <?php if ($userRole === 'SuperAdmin'): ?>
+                        <a href="admin_management.php" style="text-decoration: none;"
+                            class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_management.php' ? 'active' : ''; ?>">
+                            Admin Management
+                        </a>
+                    <?php endif; ?>
                 </div>
 
                 <div class="admin-logout">
