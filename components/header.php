@@ -68,10 +68,17 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_dashboard.php' ? 'active' : ''; ?>">
                         Dashboard
                     </a>
-
                     <a href="admin_users.php" style="text-decoration: none;"
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_users.php' ? 'active' : ''; ?>">
                         Users Management
+                    </a>
+                    <a href="admin_doctor_availability.php" style="text-decoration: none;"
+                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_doctor_availability.php' ? 'active' : ''; ?>">
+                        Doctor Availability
+                    </a>
+                    <a href="admin_appointments.php" style="text-decoration: none;"
+                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_appointments.php' ? 'active' : ''; ?>">
+                        All Appointments
                     </a>
 
                     <?php if ($userRole === 'SuperAdmin'): ?>
@@ -80,16 +87,6 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
                             Admin Management
                         </a>
                     <?php endif; ?>
-
-                    <a href="admin_doctor_availability.php" style="text-decoration: none;"
-                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_doctor_availability.php' ? 'active' : ''; ?>">
-                        Doctor Availability
-                    </a>
-
-                    <a href="admin_appointments.php" style="text-decoration: none;"
-                        class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_appointments.php' ? 'active' : ''; ?>">
-                        All Appointments
-                    </a>
                 </div>
 
                 <div class="admin-logout">
