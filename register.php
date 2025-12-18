@@ -4,20 +4,21 @@ session_start();
 $pageTitle = 'Register';
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/audit.php';
 
 $error = '';
 $success = '';
 
 // Handle form submission
 if (isset($_POST['register_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     $username = isset($_POST['username']) ? trim($_POST['username']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     $confirmPassword = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
     $fullName = isset($_POST['full_name']) ? trim($_POST['full_name']) : '';
     $email = isset($_POST['email']) ? trim($_POST['email']) : '';
     $phoneNumber = isset($_POST['phone_number']) ? trim($_POST['phone_number']) : '';
-    
+
     // Basic validation
     if (empty($username) || empty($password) || empty($confirmPassword) || empty($fullName) || empty($email)) {
         $error = 'Please fill in all required fields.';
@@ -37,15 +38,14 @@ if (isset($_POST['register_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Email format validation
     elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
-    }
-    else {
+    } else {
         $conn = getDbConnection();
-        
+
         // Check if username already exists (unique username validation)
         $checkUserSql = "SELECT user_id FROM Users WHERE username = ?";
         $checkParams = [$username];
         $checkStmt = sqlsrv_prepare($conn, $checkUserSql, $checkParams);
-        
+
         if ($checkStmt === false) {
             $error = 'An internal error occurred. Please try again later.';
         } else {
@@ -53,27 +53,72 @@ if (isset($_POST['register_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'An internal error occurred. Please try again later.';
             } else {
                 $existingUser = sqlsrv_fetch_array($checkStmt, SQLSRV_FETCH_ASSOC);
-                
+
                 if ($existingUser) {
                     $error = 'Username already exists. Please choose a different username.';
+
+                    auditLog(
+                        $conn,
+                        null,
+                        'Guest',
+                        'REGISTRATION_FAILED_USERNAME_EXISTS',
+                        'Users',
+                        null,
+                        'Attempted registration with existing username: ' . $username
+                    );
                 } else {
                     // Hash password using SHA-256
                     $passwordHash = hash('sha256', $password);
-                    
+
                     // Insert new patient user
                     $insertSql = "INSERT INTO Users (username, password_hash, full_name, email, phone_number, role) 
                                   VALUES (?, ?, ?, ?, ?, 'Patient')";
                     $insertParams = [$username, $passwordHash, $fullName, $email, $phoneNumber];
                     $insertStmt = sqlsrv_prepare($conn, $insertSql, $insertParams);
-                    
+
                     if ($insertStmt === false) {
                         $error = 'An internal error occurred. Please try again later.';
+
+                        auditLog(
+                            $conn,
+                            null,
+                            'Guest',
+                            'REGISTRATION_FAILED_DB_ERROR',
+                            'Users',
+                            null,
+                            'Database error during registration for username: ' . $username
+                        );
                     } else {
                         if (!sqlsrv_execute($insertStmt)) {
                             $error = 'Registration failed. Please try again later.';
+
+                            auditLog(
+                                $conn,
+                                null,
+                                'Guest',
+                                'REGISTRATION_FAILED_DB_EXECUTE',
+                                'Users',
+                                null,
+                                'Database execution error during registration for username: ' . $username
+                            );
                         } else {
                             // Registration successful - redirect to login
                             $_SESSION['registration_success'] = 'Registration successful! Please login with your credentials.';
+
+                            $idStmt = sqlsrv_query($conn, "SELECT SCOPE_IDENTITY() AS id");
+                            $row = sqlsrv_fetch_array($idStmt, SQLSRV_FETCH_ASSOC);
+                            $newUserId = (int) $row['id'];
+
+                            auditLog(
+                                $conn,
+                                null,
+                                'Guest',
+                                'REGISTRATION_SUCCESS',
+                                'Users',
+                                $newUserId,
+                                'New patient registered with username: ' . $username
+                            );
+
                             header('Location: login.php');
                             exit;
                         }
@@ -81,7 +126,7 @@ if (isset($_POST['register_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-        
+
         sqlsrv_close($conn);
     }
 }

@@ -1,5 +1,24 @@
 <?php
 session_start();
+
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/audit.php';
+
+$userId   = $_SESSION['user_id'] ?? null;
+$userRole = $_SESSION['role'] ?? 'Unknown';
+
+$conn = getDbConnection();
+
+auditLog(
+    $conn,
+    $userId,
+    $userRole,
+    'LOGOUT',
+    'Session',
+    null,
+    'User logged out successfully'
+);
+
 $_SESSION = [];
 
 session_unset();

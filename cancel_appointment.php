@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/audit.php';
 
 // RBAC
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
@@ -25,6 +26,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 2. Start Transaction
     if (sqlsrv_begin_transaction($conn) === false) {
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'CANCEL_APPOINTMENT_FAILED',
+            'Appointments',
+            $apptId,
+            'Failed to start database transaction for appointment ID: ' . $apptId
+        );
         die("Failed to start database transaction.");
     }
 
@@ -37,10 +47,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE appointment_id = ? AND patient_id = ? AND status = 'Booked'
         ";
         $stmt = sqlsrv_prepare($conn, $sql, [$apptId, $patientId]);
-        if (!$stmt || !sqlsrv_execute($stmt)) throw new Exception("Error verifying appointment.");
+
+        if (!$stmt || !sqlsrv_execute($stmt)) {
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'CANCEL_APPOINTMENT_FAILED',
+                'Appointments',
+                $apptId,
+                'Error verifying appointment for cancellation. Appointment ID: ' . $apptId
+            );
+
+            throw new Exception("Error verifying appointment.");
+        }
 
         $appt = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
-        if (!$appt) throw new Exception("Appointment not found or already cancelled.");
+
+        if (!$appt) {
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'CANCEL_APPOINTMENT_FAILED',
+                'Appointments',
+                $apptId,
+                'Appointment not found or already cancelled. Appointment ID: ' . $apptId
+            );
+
+            throw new Exception("Appointment not found or already cancelled.");
+        }
 
         // B. Format Data for safe SQL matching
         // Convert objects to strings to ensure the WHERE clause finds the availability row
@@ -50,7 +86,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // C. Update Appointment Status
         $updSql = "UPDATE Appointments SET status = 'Cancelled' WHERE appointment_id = ?";
         $upd = sqlsrv_prepare($conn, $updSql, [$apptId]);
-        if (!$upd || !sqlsrv_execute($upd)) throw new Exception("Failed to update status.");
+
+        if (!$upd || !sqlsrv_execute($upd)) {
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'CANCEL_APPOINTMENT_FAILED',
+                'Appointments',
+                $apptId,
+                'Failed to update appointment status to Cancelled. Appointment ID: ' . $apptId
+            );
+
+            throw new Exception("Failed to update status.");
+        }
 
         // D. Free the Doctor's Slot 
         $freeSql = "
@@ -61,25 +110,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             AND available_time = ?
         ";
         $free = sqlsrv_prepare($conn, $freeSql, [$appt['doctor_id'], $dateStr, $timeStr]);
-        if (!$free || !sqlsrv_execute($free)) throw new Exception("Failed to release schedule slot.");
+
+        if (!$free || !sqlsrv_execute($free)) {
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'CANCEL_APPOINTMENT_FAILED',
+                'DoctorAvailability',
+                null,
+                'Failed to release schedule slot for Doctor ID: ' . $appt['doctor_id'] .
+                    ' on ' . $dateStr . ' at ' . $timeStr
+            );
+
+            throw new Exception("Failed to release schedule slot.");
+        }
 
         // E. Commit
         sqlsrv_commit($conn);
 
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'CANCEL_APPOINTMENT_SUCCESS',
+            'Appointments',
+            $apptId,
+            'Successfully cancelled appointment ID: ' . $apptId
+        );
+
         // Redirect with success message
         header("Location: cancel_select.php?success=1");
         exit;
-
     } catch (Exception $e) {
         // Rollback on any failure
         sqlsrv_rollback($conn);
         // Redirect with error message
         $msg = urlencode($e->getMessage());
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'CANCEL_APPOINTMENT_FAILED',
+            'Appointments',
+            $apptId,
+            'Appointment cancellation failed: ' . $e->getMessage()
+        );
+
         header("Location: cancel_select.php?error=$msg");
         exit;
     }
 } else {
     // If accessed directly without POST
+    auditLog(
+        $conn,
+        $_SESSION['user_id'],
+        $_SESSION['role'],
+        'CANCEL_APPOINTMENT_INVALID_ACCESS',
+        'Appointments',
+        null,
+        'Direct access to cancel_appointment.php without POST.'
+    );
+
     header("Location: cancel_select.php");
     exit;
 }

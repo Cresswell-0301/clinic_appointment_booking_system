@@ -3,6 +3,7 @@ session_start();
 
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/audit.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
     header('Location: login.php');
@@ -41,10 +42,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_submit'])) {
 
         if ($doctorId <= 0 || $availabilityId <= 0) {
             $errors[] = 'Invalid doctor or slot selection.';
+
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'BOOKING_FAILED',
+                'Appointments',
+                null,
+                'Invalid doctor or slot selection'
+            );
         } else {
             // Start transaction
             if (!sqlsrv_begin_transaction($conn)) {
                 $errors[] = 'Unable to start transaction.';
+
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'BOOKING_FAILED',
+                    'Appointments',
+                    null,
+                    'Unable to start transaction'
+                );
             } else {
                 try {
                     // Lock the availability row: ensure slot belongs to doctor and is not booked
@@ -56,13 +77,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_submit'])) {
                     $params = [$availabilityId, $doctorId];
                     $stmt = sqlsrv_prepare($conn, $checkSql, $params);
                     if ($stmt === false || !sqlsrv_execute($stmt)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'BOOKING_FAILED',
+                            'Appointments',
+                            null,
+                            'Internal error checking availability'
+                        );
                         throw new Exception('Internal error checking availability.');
                     }
                     $avail = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
                     if (!$avail) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'BOOKING_FAILED',
+                            'Appointments',
+                            null,
+                            'Selected slot not found'
+                        );
                         throw new Exception('Selected slot not found.');
                     }
                     if ((int)$avail['is_booked'] === 1) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'BOOKING_FAILED',
+                            'Appointments',
+                            null,
+                            'Selected slot is already taken'
+                        );
                         throw new Exception('Selected slot is already taken.');
                     }
 
@@ -74,6 +122,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_submit'])) {
                     $insertParams = [$_SESSION['user_id'], $doctorId, $avail['available_date'], $avail['available_time']];
                     $insStmt = sqlsrv_prepare($conn, $insertSql, $insertParams);
                     if ($insStmt === false || !sqlsrv_execute($insStmt)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'BOOKING_FAILED',
+                            'Appointments',
+                            null,
+                            'Failed to create appointment'
+                        );
                         throw new Exception('Failed to create appointment.');
                     }
 
@@ -85,19 +142,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_submit'])) {
                     ";
                     $updStmt = sqlsrv_prepare($conn, $updateAvailSql, [$availabilityId]);
                     if ($updStmt === false || !sqlsrv_execute($updStmt)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'BOOKING_FAILED',
+                            'Appointments',
+                            null,
+                            'Failed to mark slot as booked'
+                        );
                         throw new Exception('Failed to mark slot as booked.');
                     }
 
+                    $idStmt = sqlsrv_query($conn, "SELECT SCOPE_IDENTITY() AS appointment_id");
+                    if ($idStmt === false) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'BOOKING_FAILED',
+                            'Appointments',
+                            null,
+                            'Failed to retrieve appointment ID'
+                        );
+                        throw new Exception('Failed to retrieve appointment ID.');
+                    }
+
+                    $idRow = sqlsrv_fetch_array($idStmt, SQLSRV_FETCH_ASSOC);
+                    $appointmentId = (int)$idRow['appointment_id'];
+
                     // Commit
                     if (!sqlsrv_commit($conn)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'BOOKING_FAILED',
+                            'Appointments',
+                            null,
+                            'Failed to commit transaction'
+                        );
                         throw new Exception('Failed to commit transaction.');
                     }
 
-                    $success = 'Appointment booked successfully.';
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'CREATE',
+                        'Appointments',
+                        $appointmentId,
+                        'Appointment booked'
+                    );
 
+                    $success = 'Appointment booked successfully.';
                 } catch (Exception $e) {
                     // rollback on any error
                     sqlsrv_rollback($conn);
+
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'BOOKING_FAILED',
+                        'Appointments',
+                        null,
+                        'Transaction rolled back due to error: ' . $e->getMessage()
+                    );
+
                     $errors[] = $e->getMessage();
                 }
             }
@@ -130,6 +242,7 @@ include __DIR__ . '/components/header.php';
 ?>
 <!doctype html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Book Appointment</title>
@@ -142,78 +255,83 @@ include __DIR__ . '/components/header.php';
             font-size: 1.2rem;
             font-weight: bold;
             color: white;
-            background-color: #1E88E5; /* Blue theme */
+            background-color: #1E88E5;
+            /* Blue theme */
             border: none;
             border-radius: 8px;
             cursor: pointer;
             margin-top: 20px;
             transition: background 0.3s;
         }
+
         .book-btn-large:hover {
-            background-color: #1565C0; /* Darker blue on hover */
+            background-color: #1565C0;
+            /* Darker blue on hover */
         }
     </style>
 </head>
+
 <body>
-<div class="container">
-    <h2>Book an Appointment</h2>
+    <div class="container">
+        <h2>Book an Appointment</h2>
 
-    <?php foreach ($errors as $err): ?>
-        <div class="error-message"><?= htmlspecialchars($err) ?></div>
-    <?php endforeach; ?>
-    <?php if ($success): ?>
-        <div class="success-message"><?= htmlspecialchars($success) ?></div>
-    <?php endif; ?>
-
-    <form method="get" action="book_appointment.php">
-        <label for="doctor_id_select">Select Doctor</label>
-        <select id="doctor_id_select" name="doctor_id" onchange="this.form.submit()" style="width:100%; padding:10px; margin-bottom:20px;">
-            <option value="">-- choose doctor --</option>
-            <?php foreach ($doctors as $d): ?>
-                <option value="<?= $d['doctor_id'] ?>" <?= ($selectedDoctorId == $d['doctor_id']) ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($d['full_name']) ?> <?= $d['specialization'] ? ' — ' . htmlspecialchars($d['specialization']) : '' ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </form>
-
-    <?php if ($selectedDoctorId > 0): ?>
-        <h3>Available slots</h3>
-        <?php if (empty($availableSlots)): ?>
-            <p>No available slots (for today and future). Contact admin.</p>
-        <?php else: ?>
-            <form method="post" action="book_appointment.php">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                <input type="hidden" name="doctor_id" value="<?= htmlspecialchars($selectedDoctorId) ?>">
-                
-                <table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
-                    <thead style="background:#f0f0f0;">
-                        <tr>
-                            <th style="padding:10px; text-align:left;">Select</th>
-                            <th style="padding:10px; text-align:left;">Date</th>
-                            <th style="padding:10px; text-align:left;">Time</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($availableSlots as $s): ?>
-                        <tr style="border-bottom:1px solid #ddd;">
-                            <td style="padding:10px;">
-                                <input type="radio" name="availability_id" value="<?= $s['availability_id'] ?>" required style="transform: scale(1.5);">
-                            </td>
-                            <td style="padding:10px;"><?= $s['available_date']->format('Y-m-d') ?></td>
-                            <td style="padding:10px;"><?= $s['available_time']->format('H:i') ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-                
-                <button name="book_submit" type="submit" class="book-btn-large">
-                    Confirm Booking
-                </button>
-
-            </form>
+        <?php foreach ($errors as $err): ?>
+            <div class="error-message"><?= htmlspecialchars($err) ?></div>
+        <?php endforeach; ?>
+        <?php if ($success): ?>
+            <div class="success-message"><?= htmlspecialchars($success) ?></div>
         <?php endif; ?>
-    <?php endif; ?>
-</div>
+
+        <form method="get" action="book_appointment.php">
+            <label for="doctor_id_select">Select Doctor</label>
+            <select id="doctor_id_select" name="doctor_id" onchange="this.form.submit()" style="width:100%; padding:10px; margin-bottom:20px;">
+                <option value="">-- choose doctor --</option>
+                <?php foreach ($doctors as $d): ?>
+                    <option value="<?= $d['doctor_id'] ?>" <?= ($selectedDoctorId == $d['doctor_id']) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($d['full_name']) ?> <?= $d['specialization'] ? ' — ' . htmlspecialchars($d['specialization']) : '' ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+
+        <?php if ($selectedDoctorId > 0): ?>
+            <h3>Available slots</h3>
+            <?php if (empty($availableSlots)): ?>
+                <p>No available slots (for today and future). Contact admin.</p>
+            <?php else: ?>
+                <form method="post" action="book_appointment.php">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                    <input type="hidden" name="doctor_id" value="<?= htmlspecialchars($selectedDoctorId) ?>">
+
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
+                        <thead style="background:#f0f0f0;">
+                            <tr>
+                                <th style="padding:10px; text-align:left;">Select</th>
+                                <th style="padding:10px; text-align:left;">Date</th>
+                                <th style="padding:10px; text-align:left;">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($availableSlots as $s): ?>
+                                <tr style="border-bottom:1px solid #ddd;">
+                                    <td style="padding:10px;">
+                                        <input type="radio" name="availability_id" value="<?= $s['availability_id'] ?>" required style="transform: scale(1.5);">
+                                    </td>
+                                    <td style="padding:10px;"><?= $s['available_date']->format('Y-m-d') ?></td>
+                                    <td style="padding:10px;"><?= $s['available_time']->format('H:i') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+
+                    <button name="book_submit" type="submit" class="book-btn-large">
+                        Confirm Booking
+                    </button>
+
+                </form>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </body>
+
 </html>

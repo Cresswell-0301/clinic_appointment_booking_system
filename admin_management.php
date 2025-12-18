@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'SuperAdmin') {
 }
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/audit.php';
+
 $conn = getDbConnection();
 
 $allowedRoles = ['All', 'Admin', 'SuperAdmin'];
@@ -133,8 +135,26 @@ if (isset($_POST['create_admin'])) {
         if ($exists) {
             if ($exists['conflict'] === 'username') {
                 $error = "Username already exists.";
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'CREATE_FAILED',
+                    'Users',
+                    null,
+                    'Attempted to create admin with existing username: ' . $username
+                );
             } else {
                 $error = "Email already exists.";
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'CREATE_FAILED',
+                    'Users',
+                    null,
+                    'Attempted to create admin with existing email: ' . $email
+                );
             }
         } else {
             $hash = hash('sha256', $password);
@@ -144,6 +164,24 @@ if (isset($_POST['create_admin'])) {
                 "INSERT INTO Users (full_name, username, email, password_hash, role, is_active)
                  VALUES (?, ?, ?, ?, 'Admin', 1)",
                 [$fullName, $username, $email, $hash]
+            );
+
+            $newAdminId = fetchOne(
+                $conn,
+                "SELECT SCOPE_IDENTITY() AS new_id"
+            )['new_id'];
+
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'CREATE',
+                'Users',
+                $newAdminId,
+                json_encode([
+                    'username' => $username,
+                    'email' => $email
+                ])
             );
 
             $message = "Admin created successfully.";
@@ -204,11 +242,35 @@ if (isset($_POST['update_admin'])) {
                     "UPDATE Users SET full_name=?, password_hash=? WHERE user_id=? AND role='Admin'",
                     [$fullName, $hash, $userId]
                 );
+
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'UPDATE',
+                    'Users',
+                    $userId,
+                    json_encode([
+                        'updated_fields' => ['full_name', 'password']
+                    ])
+                );
             } else {
                 sqlsrv_query(
                     $conn,
                     "UPDATE Users SET full_name=? WHERE user_id=? AND role='Admin'",
                     [$fullName, $userId]
+                );
+
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'UPDATE',
+                    'Users',
+                    $userId,
+                    json_encode([
+                        'updated_fields' => ['full_name']
+                    ])
                 );
             }
         }
@@ -229,10 +291,41 @@ if (isset($_GET['disable'])) {
 
     if (!$target || $target['role'] !== 'Admin') {
         $error = "Only Admin accounts can be disabled.";
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DISABLE_FAILED',
+            'Users',
+            $id,
+            'Attempted to disable non-admin or non-existing user ID: ' . $id
+        );
     } elseif ($id === $_SESSION['user_id']) {
         $error = "You cannot disable yourself.";
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DISABLE_FAILED',
+            'Users',
+            $id,
+            'Attempted to disable own account.'
+        );
     } else {
         sqlsrv_query($conn, "UPDATE Users SET is_active=0 WHERE user_id=?", [$id]);
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'UPDATE',
+            'Users',
+            $id,
+            'Admin account disabled'
+        );
+
         $message = "Admin disabled.";
         header("Refresh:1; url=admin_management.php");
     }
@@ -242,6 +335,17 @@ if (isset($_GET['activate'])) {
     $id = (int)$_GET['activate'];
 
     sqlsrv_query($conn, "UPDATE Users SET is_active=1 WHERE user_id=? AND role='Admin'", [$id]);
+
+    auditLog(
+        $conn,
+        $_SESSION['user_id'],
+        $_SESSION['role'],
+        'UPDATE',
+        'Users',
+        $id,
+        'Admin account activated'
+    );
+
     $message = "Admin activated.";
     header("Refresh:1; url=admin_management.php");
 }
@@ -252,6 +356,16 @@ if (isset($_GET['delete'])) {
 
     if ($id === $_SESSION['user_id']) {
         $error = "You cannot delete your own account.";
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DELETE_FAILED',
+            'Users',
+            $id,
+            'Attempted to delete own account.'
+        );
     } else {
         $target = fetchOne(
             $conn,
@@ -261,13 +375,43 @@ if (isset($_GET['delete'])) {
 
         if (!$target) {
             $error = "User not found.";
+
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'DELETE_FAILED',
+                'Users',
+                $id,
+                'Attempted to delete non-existing user ID: ' . $id
+            );
         } elseif ($target['role'] !== 'Admin') {
             $error = "Only Admin accounts can be deleted.";
+
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'DELETE_FAILED',
+                'Users',
+                $id,
+                'Attempted to delete non-admin user ID: ' . $id
+            );
         } else {
             sqlsrv_query(
                 $conn,
                 "DELETE FROM Users WHERE user_id = ? AND role = 'Admin'",
                 [$id]
+            );
+
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'DELETE',
+                'Users',
+                $id,
+                'Admin account deleted'
             );
 
             $message = "Admin deleted successfully.";

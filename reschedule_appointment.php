@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/audit.php';
 
 // RBAC
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Patient') {
@@ -44,14 +45,24 @@ $doctorId = $apptRow['doctor_id'];
 // 2. Handle POST Request (The Swap Logic)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modify_submit'])) {
     $token = $_POST['csrf_token'] ?? '';
-    
+
     if (!validateCsrfToken($token)) {
         $errors[] = 'Invalid session token. Please refresh.';
     } else {
         $newAvailabilityId = isset($_POST['availability_id']) ? (int)$_POST['availability_id'] : 0;
-        
+
         if ($newAvailabilityId <= 0) {
             $errors[] = 'Please select a new time slot.';
+
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'RESCHEDULE_APPOINTMENT_FAILED',
+                'Appointments',
+                $apptId,
+                'No new slot selected for rescheduling appointment ID: ' . $apptId
+            );
         } else {
             // Start Transaction
             if (sqlsrv_begin_transaction($conn) === false) {
@@ -66,12 +77,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modify_submit'])) {
                         WHERE availability_id = ? AND doctor_id = ?
                     ";
                     $stmtS = sqlsrv_prepare($conn, $checkSlotSql, [$newAvailabilityId, $doctorId]);
-                    if (!$stmtS || !sqlsrv_execute($stmtS)) throw new Exception("Error verifying new slot.");
-                    
+
+                    if (!$stmtS || !sqlsrv_execute($stmtS)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'RESCHEDULE_APPOINTMENT_FAILED',
+                            'DoctorAvailability',
+                            $newAvailabilityId,
+                            'Error verifying new slot for rescheduling appointment ID: ' . $apptId
+                        );
+                        throw new Exception("Error verifying new slot.");
+                    }
+
                     $newSlot = sqlsrv_fetch_array($stmtS, SQLSRV_FETCH_ASSOC);
-                    
-                    if (!$newSlot) throw new Exception("New slot not found.");
-                    if ((int)$newSlot['is_booked'] === 1) throw new Exception("That slot was just taken. Please choose another.");
+
+                    if (!$newSlot) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'RESCHEDULE_APPOINTMENT_FAILED',
+                            'DoctorAvailability',
+                            $newAvailabilityId,
+                            'New slot not found for rescheduling appointment ID: ' . $apptId
+                        );
+
+                        throw new Exception("New slot not found.");
+                    }
+
+                    if ((int)$newSlot['is_booked'] === 1) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'RESCHEDULE_APPOINTMENT_FAILED',
+                            'DoctorAvailability',
+                            $newAvailabilityId,
+                            'Attempted to book an already booked slot for appointment ID: ' . $apptId
+                        );
+
+                        throw new Exception("That slot was just taken. Please choose another.");
+                    }
 
                     // B. Lock and Verify OLD Slot (The one we are giving up)
                     // We must find the availability row that matches the CURRENT appointment date/time
@@ -80,20 +128,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modify_submit'])) {
                     $oldTimeStr = $apptRow['appointment_time']->format('H:i:s'); // SQL Time often needs seconds
 
                     // C. Perform Updates
-                    
+
                     // 1. Update Appointment Table to NEW Date/Time
                     $updateApptSql = "UPDATE Appointments SET appointment_date = ?, appointment_time = ? WHERE appointment_id = ?";
                     $updA = sqlsrv_prepare($conn, $updateApptSql, [
-                        $newSlot['available_date'], 
-                        $newSlot['available_time'], 
+                        $newSlot['available_date'],
+                        $newSlot['available_time'],
                         $apptId
                     ]);
-                    if (!$updA || !sqlsrv_execute($updA)) throw new Exception("Failed to update appointment record.");
+
+                    if (!$updA || !sqlsrv_execute($updA)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'RESCHEDULE_APPOINTMENT_FAILED',
+                            'Appointments',
+                            $apptId,
+                            'Failed to update appointment record for rescheduling appointment ID: ' . $apptId
+                        );
+
+                        throw new Exception("Failed to update appointment record.");
+                    }
 
                     // 2. Mark NEW Slot as Booked (is_booked = 1)
                     $markNewSql = "UPDATE DoctorAvailability SET is_booked = 1 WHERE availability_id = ?";
                     $markNew = sqlsrv_prepare($conn, $markNewSql, [$newAvailabilityId]);
-                    if (!$markNew || !sqlsrv_execute($markNew)) throw new Exception("Failed to book new slot.");
+
+                    if (!$markNew || !sqlsrv_execute($markNew)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'RESCHEDULE_APPOINTMENT_FAILED',
+                            'DoctorAvailability',
+                            $newAvailabilityId,
+                            'Failed to book new slot for rescheduling appointment ID: ' . $apptId
+                        );
+
+                        throw new Exception("Failed to book new slot.");
+                    }
 
                     // 3. Mark OLD Slot as Available (is_booked = 0)
                     $freeOldSql = "
@@ -104,19 +178,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modify_submit'])) {
                         AND available_time = ?
                     ";
                     $freeOld = sqlsrv_prepare($conn, $freeOldSql, [$doctorId, $oldDateStr, $oldTimeStr]);
-                    if (!$freeOld || !sqlsrv_execute($freeOld)) throw new Exception("Failed to free old slot.");
+
+                    if (!$freeOld || !sqlsrv_execute($freeOld)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'RESCHEDULE_APPOINTMENT_FAILED',
+                            'DoctorAvailability',
+                            null,
+                            'Failed to free old slot for rescheduling appointment ID: ' . $apptId
+                        );
+                        throw new Exception("Failed to free old slot.");
+                    }
 
                     // Commit
                     sqlsrv_commit($conn);
+
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'RESCHEDULE_APPOINTMENT_SUCCESS',
+                        'Appointments',
+                        $apptId,
+                        'Successfully rescheduled appointment ID: ' . $apptId .
+                            ' to ' . $newSlot['available_date']->format('Y-m-d') .
+                            ' at ' . $newSlot['available_time']->format('H:i')
+                    );
+
                     $success = "Appointment rescheduled successfully!";
-                    
+
                     // Refresh page data so the UI updates immediately
                     $apptRow['appointment_date'] = $newSlot['available_date'];
                     $apptRow['appointment_time'] = $newSlot['available_time'];
-
                 } catch (Exception $e) {
                     sqlsrv_rollback($conn);
                     $errors[] = "Error: " . $e->getMessage();
+
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'RESCHEDULE_APPOINTMENT_FAILED',
+                        'Appointments',
+                        $apptId,
+                        'Rescheduling appointment ID: ' . $apptId . ' failed with error: ' . $e->getMessage()
+                    );
                 }
             }
         }
@@ -173,7 +281,7 @@ include __DIR__ . '/components/header.php';
         <h3>Select New Date & Time:</h3>
         <form method="post" action="">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-            
+
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <thead>
                     <tr style="background: #f4f4f4; border-bottom: 2px solid #ddd;">
@@ -183,21 +291,21 @@ include __DIR__ . '/components/header.php';
                     </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($availableSlots as $s): ?>
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 10px;">
-                            <input type="radio" name="availability_id" value="<?= $s['availability_id'] ?>" required style="transform: scale(1.3);">
-                        </td>
-                        <td style="padding: 10px;"><?= $s['available_date']->format('Y-m-d') ?></td>
-                        <td style="padding: 10px;"><?= $s['available_time']->format('H:i') ?></td>
-                    </tr>
-                <?php endforeach; ?>
+                    <?php foreach ($availableSlots as $s): ?>
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 10px;">
+                                <input type="radio" name="availability_id" value="<?= $s['availability_id'] ?>" required style="transform: scale(1.3);">
+                            </td>
+                            <td style="padding: 10px;"><?= $s['available_date']->format('Y-m-d') ?></td>
+                            <td style="padding: 10px;"><?= $s['available_time']->format('H:i') ?></td>
+                        </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
 
             <div style="margin-top: 20px;">
-                <button name="modify_submit" type="submit" 
-                        style="padding: 12px 24px; background: #1E88E5; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">
+                <button name="modify_submit" type="submit"
+                    style="padding: 12px 24px; background: #1E88E5; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">
                     Confirm Change
                 </button>
                 <a href="reschedule_select.php" style="margin-left: 15px; text-decoration: none; color: #666;">Cancel</a>

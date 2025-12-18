@@ -80,6 +80,24 @@ BEGIN
 END
 ";
 
+// AUDIT LOG
+$queries[] = "
+IF OBJECT_ID('dbo.AuditLogs', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.AuditLogs (
+        audit_id       INT IDENTITY(1,1) PRIMARY KEY,
+        user_id        INT NULL,
+        user_role      VARCHAR(20) NULL,
+        action_type    VARCHAR(50) NOT NULL,
+        entity_name    VARCHAR(50) NOT NULL,
+        entity_id      INT NULL,
+        action_details VARCHAR(500) NULL,
+        ip_address     VARCHAR(45) NULL,
+        created_at     DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+    );
+END
+";
+
 foreach ($queries as $sql) {
     $stmt = sqlsrv_query($conn, $sql);
     if ($stmt === false) {

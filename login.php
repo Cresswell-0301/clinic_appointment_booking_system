@@ -4,17 +4,42 @@ session_start();
 $pageTitle = 'Login';
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/audit.php';
+
+$conn = getDbConnection();
 
 $error = '';
 $success = '';
 
 if (isset($_SESSION['login_error'])) {
     $error = $_SESSION['login_error'];
+
+    auditLog(
+        $conn,
+        null,
+        'Guest',
+        'LOGIN_FAILED',
+        'Users',
+        null,
+        'Failed login attempt: ' . $error
+    );
+
     unset($_SESSION['login_error']);
 }
 
 if (isset($_SESSION['registration_success'])) {
     $success = $_SESSION['registration_success'];
+
+    auditLog(
+        $conn,
+        null,
+        'Guest',
+        'REGISTER',
+        'Users',
+        null,
+        'New user registered successfully'
+    );
+
     unset($_SESSION['registration_success']);
 }
 
@@ -25,10 +50,20 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($username === '' || $password === '') {
         $_SESSION['login_error'] = 'Please enter both username and password.';
+
+        auditLog(
+            $conn,
+            null,
+            'Guest',
+            'LOGIN_FAILED',
+            'Users',
+            null,
+            'Failed login attempt: Missing username or password'
+        );
+
         header('Location: login.php');
         exit;
     } else {
-        $conn = getDbConnection();
 
         $passwordHash = hash('sha256', $password);
 
@@ -42,11 +77,33 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($stmt === false) {
             $_SESSION['login_error'] = 'An internal error occurred. Please try again later.';
+
+            auditLog(
+                $conn,
+                null,
+                'Guest',
+                'LOGIN_FAILED',
+                'Users',
+                null,
+                'Failed login attempt: SQL prepare error'
+            );
+
             header("Location: login.php");
             exit;
         } else {
             if (!sqlsrv_execute($stmt)) {
                 $_SESSION['login_error'] = 'An internal error occurred. Please try again later.';
+
+                auditLog(
+                    $conn,
+                    null,
+                    'Guest',
+                    'LOGIN_FAILED',
+                    'Users',
+                    null,
+                    'Failed login attempt: SQL execute error'
+                );
+
                 header("Location: login.php");
                 exit;
             } else {
@@ -69,6 +126,17 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         $_SESSION['login_error'] = "Your account is inactive. Please contact the $affectedUserRole.";
+
+                        auditLog(
+                            $conn,
+                            $row['user_id'],
+                            $row['role'],
+                            'LOGIN_FAILED',
+                            'Users',
+                            $row['user_id'],
+                            'Attempted login to inactive account'
+                        );
+
                         header('Location: login.php');
                         exit;
                     }
@@ -78,6 +146,16 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['email']      = $row['email'];
                     $_SESSION['phone_number'] = $row['phone_number'];
                     $_SESSION['role']       = $row['role'];
+
+                    auditLog(
+                        $conn,
+                        $row['user_id'],
+                        $row['role'],
+                        'LOGIN',
+                        'Users',
+                        $row['user_id'],
+                        'User login successful'
+                    );
 
                     switch ($row['role']) {
                         case 'Patient':
@@ -102,10 +180,31 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                             exit;
 
                         default:
+                            auditLog(
+                                $conn,
+                                $row['user_id'],
+                                $row['role'],
+                                'LOGIN_FAILED',
+                                'Users',
+                                $row['user_id'],
+                                'Login failed due to unrecognized role'
+                            );
+
                             $error = 'Your account role is not recognized. Please contact the administrator.';
                     }
                 } else {
                     $_SESSION['login_error'] = 'Invalid username or password.';
+
+                    auditLog(
+                        $conn,
+                        null,
+                        'Guest',
+                        'LOGIN_FAILED',
+                        'Users',
+                        null,
+                        'Failed login attempt: Invalid credentials'
+                    );
+
                     header('Location: login.php');
                     exit;
                 }

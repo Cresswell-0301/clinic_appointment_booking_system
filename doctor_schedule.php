@@ -8,6 +8,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
 }
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/audit.php';
+
 $conn = getDbConnection();
 
 $doctorId = $_SESSION['doctor_id'];
@@ -121,6 +123,16 @@ if (isset($_POST['add_availability'])) {
 
                     if ($exists) {
                         $error = "Slot on $date at $time already exists.";
+
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'ADD_AVAILABILITY_FAILED',
+                            'DoctorAvailability',
+                            null,
+                            "Attempted to add duplicate slot on $date at $time."
+                        );
                         continue;
                     }
 
@@ -132,6 +144,16 @@ if (isset($_POST['add_availability'])) {
                         [$doctorId, $date, $time]
                     );
 
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'ADD_AVAILABILITY_SUCCESS',
+                        'DoctorAvailability',
+                        null,
+                        "Added availability slot on $date at $time."
+                    );
+
                     $createdCount++;
                 }
             }
@@ -141,6 +163,16 @@ if (isset($_POST['add_availability'])) {
 
         if (!empty($error)) {
             $keepModalOpen = true;
+
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'ADD_AVAILABILITY_PARTIAL_SUCCESS',
+                'DoctorAvailability',
+                null,
+                "Created $createdCount slots with some errors: $error"
+            );
         } else {
             $old = [
                 'start_date' => '',
@@ -169,15 +201,48 @@ if (isset($_GET['delete'])) {
 
     if (!$slot) {
         $error = "Invalid availability ID.";
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DELETE_AVAILABILITY_FAILED',
+            'DoctorAvailability',
+            $availabilityId,
+            'Attempted to delete non-existent availability ID: ' . $availabilityId
+        );
     } elseif ($slot[0]['is_booked'] == 1) {
         $error = "You cannot delete a booked slot.";
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DELETE_AVAILABILITY_FAILED',
+            'DoctorAvailability',
+            $availabilityId,
+            'Attempted to delete booked availability ID: ' . $availabilityId
+        );
     } else {
         $deleteSql = "
             DELETE FROM DoctorAvailability
             WHERE availability_id = ? AND doctor_id = ?
         ";
         sqlsrv_query($conn, $deleteSql, [$availabilityId, $doctorId]);
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DELETE_AVAILABILITY_SUCCESS',
+            'DoctorAvailability',
+            $availabilityId,
+            'Deleted availability ID: ' . $availabilityId
+        );
+
         $message = "Availability deleted successfully.";
+
+        header("Refresh:1; url=doctor_schedule.php");
     }
 }
 

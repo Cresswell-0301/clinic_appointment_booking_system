@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/audit.php';
 
 // 1. RBAC: Only doctors can access
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Doctor') {
@@ -41,6 +42,15 @@ $sql = "
 $stmt = sqlsrv_query($conn, $sql, [$apptId]);
 
 if ($stmt === false) {
+    auditLog(
+        $conn,
+        $_SESSION['user_id'],
+        $_SESSION['role'],
+        'FETCH_APPOINTMENT_FAILED',
+        'Appointments',
+        $apptId,
+        'Failed to fetch appointment details for appointment ID: ' . $apptId
+    );
     die("Database Error Details: " . print_r(sqlsrv_errors(), true));
 }
 
@@ -78,6 +88,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
 
         if (!in_array($newStatus, $allowedStatuses, true)) {
             $errors[] = "Invalid status selected.";
+
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'UPDATE_APPOINTMENT_INVALID_STATUS',
+                'Appointments',
+                $apptId,
+                'Attempted to set invalid status: ' . $newStatus . ' for appointment ID: ' . $apptId
+            );
         } else {
 
             // START TRANSACTION
@@ -91,6 +111,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
                     $updateStmt = sqlsrv_prepare($conn, $updateSql, [$newStatus, $apptId]);
 
                     if (!$updateStmt || !sqlsrv_execute($updateStmt)) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'UPDATE_APPOINTMENT_FAILED',
+                            'Appointments',
+                            $apptId,
+                            'Failed to update status to ' . $newStatus . ' for appointment ID: ' . $apptId
+                        );
                         throw new Exception("Failed to update appointment status.");
                     }
 
@@ -127,6 +156,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
 
                         $availStmt = sqlsrv_prepare($conn, $availSql, $availParams);
                         if (!$availStmt || !sqlsrv_execute($availStmt)) {
+                            auditLog(
+                                $conn,
+                                $_SESSION['user_id'],
+                                $_SESSION['role'],
+                                'UPDATE_AVAILABILITY_FAILED',
+                                'DoctorAvailability',
+                                null,
+                                'Failed to update availability for Doctor ID: ' . $doctorId .
+                                    ' on ' . $appt['appointment_date']->format('Y-m-d') .
+                                    ' at ' . $appt['appointment_time']->format('H:i') .
+                                    ' to is_booked=' . $isBookedValue
+                            );
                             throw new Exception("Failed to update schedule availability.");
                         }
                     }
@@ -134,11 +175,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
                     // Commit Transaction
                     sqlsrv_commit($conn);
 
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'UPDATE_APPOINTMENT_SUCCESS',
+                        'Appointments',
+                        $apptId,
+                        'Successfully updated appointment ID: ' . $apptId . ' to status: ' . $newStatus
+                    );
+
                     $success = "Status updated to '{$newStatus}' successfully.";
                     $appt['status'] = $newStatus; // Update display immediately
 
                 } catch (Exception $e) {
                     sqlsrv_rollback($conn);
+
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'UPDATE_APPOINTMENT_FAILED',
+                        'Appointments',
+                        $apptId,
+                        'Transaction failed while updating appointment ID: ' . $apptId . '. Error: ' . $e->getMessage()
+                    );
+                    
                     $errors[] = "Error: " . $e->getMessage();
                 }
             }

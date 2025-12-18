@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] !== 'Admin' && $_SESSION[
 }
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/audit.php';
+
 $conn = getDbConnection();
 
 // Filter Role
@@ -138,8 +140,28 @@ if (isset($_POST['create_user'])) {
         if ($conflict) {
             if ($conflict['conflict'] === 'username') {
                 $error = "Username already exists.";
+
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'CREATE_FAILED',
+                    'Users',
+                    null,
+                    'Attempted to create user with existing username: ' . $username
+                );
             } else {
                 $error = "Email already exists.";
+
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'CREATE_FAILED',
+                    'Users',
+                    null,
+                    'Attempted to create user with existing email: ' . $email
+                );
             }
         } else {
             sqlsrv_begin_transaction($conn);
@@ -157,6 +179,17 @@ if (isset($_POST['create_user'])) {
                 if ($stmtUser === false) {
                     // throw new Exception("Failed to insert user.");
                     $errors = sqlsrv_errors();
+
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'CREATE_FAILED',
+                        'Users',
+                        null,
+                        'User creation failed for username: ' . $username . ' Error: ' . $errors[0]['message']
+                    );
+
                     throw new Exception($errors[0]['message']);
                 }
 
@@ -167,6 +200,16 @@ if (isset($_POST['create_user'])) {
                 );
 
                 if (!$newUser) {
+                    auditLog(
+                        $conn,
+                        $_SESSION['user_id'],
+                        $_SESSION['role'],
+                        'CREATE_FAILED',
+                        'Users',
+                        null,
+                        'Failed to retrieve new user ID for username: ' . $username
+                    );
+
                     throw new Exception("Failed to retrieve new user ID.");
                 }
 
@@ -179,16 +222,48 @@ if (isset($_POST['create_user'])) {
                     );
 
                     if ($stmtDoctor === false) {
+                        auditLog(
+                            $conn,
+                            $_SESSION['user_id'],
+                            $_SESSION['role'],
+                            'CREATE_FAILED',
+                            'Doctors',
+                            null,
+                            'Doctor record creation failed for user ID: ' . $newUser['user_id']
+                        );
+
                         throw new Exception("Failed to insert doctor record.");
                     }
                 }
 
                 sqlsrv_commit($conn);
+
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'CREATE_SUCCESS',
+                    'Users',
+                    $newUser['user_id'],
+                    'Created new user ID: ' . $newUser['user_id'] . ' with role: ' . $role
+                );
+
                 $message = ucfirst($role) . " created successfully.";
 
                 header("Refresh:1; url=admin_users.php");
             } catch (Exception $e) {
                 sqlsrv_rollback($conn);
+
+                auditLog(
+                    $conn,
+                    $_SESSION['user_id'],
+                    $_SESSION['role'],
+                    'CREATE_FAILED',
+                    'Users',
+                    null,
+                    'User creation failed for username: ' . $username . ' Error: ' . $e->getMessage()
+                );
+
                 $error = "Creation failed: " . $e->getMessage();
                 $keepModalOpen = true;
             }
@@ -220,8 +295,28 @@ if (isset($_POST['update_user'])) {
 
     if ($conflict) {
         if ($conflict['conflict'] === 'username') {
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'UPDATE_FAILED',
+                'Users',
+                $userId,
+                'Attempted to update user ID: ' . $userId . ' with existing username: ' . $username
+            );
+
             $error = "Username already exists.";
         } else {
+            auditLog(
+                $conn,
+                $_SESSION['user_id'],
+                $_SESSION['role'],
+                'UPDATE_FAILED',
+                'Users',
+                $userId,
+                'Attempted to update user ID: ' . $userId . ' with existing email: ' . $email
+            );
+
             $error = "Email already exists.";
         }
     } else {
@@ -259,6 +354,17 @@ if (isset($_POST['update_user'])) {
         }
 
         sqlsrv_query($conn, $sql, $params);
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'UPDATE_SUCCESS',
+            'Users',
+            $userId,
+            'Updated user ID: ' . $userId . ' with role: ' . $role
+        );
+
         $message = $role . " updated successfully.";
     }
     header("Refresh:1; url=admin_users.php");
@@ -269,11 +375,31 @@ if (isset($_GET['delete'])) {
 
     if ($userId === $_SESSION['user_id']) {
         $error = "You cannot delete your own account.";
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DELETE_FAILED',
+            'Users',
+            $userId,
+            'Attempted to delete own user ID: ' . $userId
+        );
     } else {
         sqlsrv_query(
             $conn,
             "UPDATE Users SET is_active = 0 WHERE user_id = ?",
             [$userId]
+        );
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'DELETE_SUCCESS',
+            'Users',
+            $userId,
+            'Disabled user ID: ' . $userId
         );
 
         $message = "User disabled successfully.";
@@ -285,6 +411,16 @@ if (isset($_GET['delete'])) {
 if (isset($_GET['activate'])) {
     if ($_SESSION['role'] !== 'SuperAdmin') {
         $error = "You are not authorized to activate accounts.";
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'ACTIVATE_FAILED',
+            'Users',
+            (int)$_GET['activate'],
+            'Unauthorized activation attempt for user ID: ' . (int)$_GET['activate']
+        );
     } else {
         $userId = (int)$_GET['activate'];
 
@@ -292,6 +428,16 @@ if (isset($_GET['activate'])) {
             $conn,
             "UPDATE Users SET is_active = 1 WHERE user_id = ?",
             [$userId]
+        );
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'ACTIVATE_SUCCESS',
+            'Users',
+            $userId,
+            'Reactivated user ID: ' . $userId
         );
 
         $message = "User reactivated successfully.";

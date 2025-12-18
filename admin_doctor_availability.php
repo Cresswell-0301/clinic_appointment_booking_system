@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['Admin', 'Supe
 }
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/audit.php';
+
 $conn = getDbConnection();
 
 $where  = [];
@@ -149,10 +151,31 @@ if (isset($_POST['book_appointment'])) {
         );
 
         sqlsrv_commit($conn);
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'BOOKING_SUCCESS',
+            'Appointments',
+            null,
+            'Appointment booked successfully'
+        );
+
         header("Location: admin_doctor_availability.php");
         exit;
     } catch (Exception $e) {
         sqlsrv_rollback($conn);
+
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'BOOKING_FAILED',
+            'Appointments',
+            null,
+            'Appointment booking failed: ' . $e->getMessage()
+        );
         $error = "Booking failed.";
     }
 }
