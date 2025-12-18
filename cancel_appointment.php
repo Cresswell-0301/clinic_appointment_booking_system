@@ -19,6 +19,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die('Invalid Security Token. Please go back and refresh the page.');
     }
 
+    $redirect = $_POST['redirect'] ?? 'view_appointment.php';
+
+    $allowedRedirects = ['view_appointment.php', 'cancel_select.php'];
+
+    if (!in_array($redirect, $allowedRedirects, true)) {
+        $redirect = 'view_appointment.php';
+    }
+
     $apptId = (int)($_POST['appointment_id'] ?? 0);
     $patientId = $_SESSION['user_id'];
 
@@ -140,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         // Redirect with success message
-        header("Location: cancel_select.php?success=1");
+        header("Location: {$redirect}?success=1");
         exit;
     } catch (Exception $e) {
         // Rollback on any failure
@@ -158,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Appointment cancellation failed: ' . $e->getMessage()
         );
 
-        header("Location: cancel_select.php?error=$msg");
+        header("Location: {$redirect}?error={$msg}");
         exit;
     }
 } else {
@@ -173,6 +181,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'Direct access to cancel_appointment.php without POST.'
     );
 
-    header("Location: cancel_select.php");
+    header("Location: {$redirect}");
     exit;
 }

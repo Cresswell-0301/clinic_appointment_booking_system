@@ -68,6 +68,8 @@ include __DIR__ . '/components/header.php';
                     <form method="post" action="cancel_appointment.php" style="margin:0;" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
                         <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                         <input type="hidden" name="appointment_id" value="<?= $a['appointment_id'] ?>">
+                        <input type="hidden" name="redirect" value="cancel_select.php">
+
                         <button type="submit" 
                                 style="background-color: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">
                             Cancel

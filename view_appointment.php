@@ -179,6 +179,22 @@ include __DIR__ . '/components/header.php';
     <title>My Appointments</title>
 </head>
 
+<style>
+    .btn-modify {
+        background: #1E88E5;
+        color: #fff;
+    }
+
+    .btn-cancel {
+        background: #E53935;
+        color: #fff;
+    }
+
+    .btn-cancel:hover {
+        background: #8f4f4eff;
+    }
+</style>
+
 <body>
     <div class="container">
         <h2> &nbsp; &nbsp; My Appointments</h2>
@@ -217,19 +233,24 @@ include __DIR__ . '/components/header.php';
 
                                 <?php if ($a['status'] === 'Booked'): ?>
 
-                                    <!-- Modify (Reschedule) -->
-                                    <a href="reschedule_select.php?id=<?= $a['appointment_id'] ?>"
-                                        class="admin-btn"
-                                        style="background:#1E88E5; color:white; padding:6px 12px; border-radius:6px;">
+                                    <a href="reschedule_select.php?id=<?= (int)$a['appointment_id'] ?>"
+                                        class="admin-btn btn-modify">
                                         Modify
                                     </a>
 
-                                    <!-- Cancel -->
-                                    <a href="cancel_select.php?id=<?= $a['appointment_id'] ?>"
-                                        class="admin-btn"
-                                        style="background:#E53935; color:white; padding:6px 12px; border-radius:6px;">
-                                        Cancel
-                                    </a>
+                                    <form method="post"
+                                        action="cancel_appointment.php"
+                                        style="margin:0;"
+                                        onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                        <input type="hidden" name="appointment_id" value="<?= (int)$a['appointment_id'] ?>">
+                                        <input type="hidden" name="redirect" value="view_appointment.php">
+
+                                        <button type="submit" class="admin-btn btn-cancel">
+                                            Cancel
+                                        </button>
+                                    </form>
 
                                 <?php else: ?>
                                     <span class="admin-btn"
