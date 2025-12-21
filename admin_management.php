@@ -157,7 +157,7 @@ if (isset($_POST['create_admin'])) {
                 );
             }
         } else {
-            $hash = hash('sha256', $password);
+            $hash = password_hash($password, PASSWORD_DEFAULT);
 
             sqlsrv_query(
                 $conn,
@@ -198,9 +198,10 @@ if (isset($_POST['update_admin'])) {
     $username = trim($_POST['username']);
     $email    = trim($_POST['email']);
     $password = $_POST['password'];
-    $userId = (int)$_POST['user_id'];
-    $fullName = trim($_POST['full_name']);
-    $password = $_POST['password'];
+
+    if ($password !== '' && $password !== $_POST['confirm_password']) {
+        $error = "Passwords do not match.";
+    }
 
     if ($userId === $_SESSION['user_id']) {
         $error = "You cannot modify your own account.";
@@ -208,22 +209,22 @@ if (isset($_POST['update_admin'])) {
         $error = "Full name, username and email are required.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email format.";
-    } elseif (strlen($password) < 12) {
+    } elseif ($password !== '' && strlen($password) < 12) {
         $error = 'Password must be at least 12 characters long.';
-    } elseif (!preg_match('/[!@#$%^&*(),.?":{}|<>]/', $password)) {
+    } elseif ($password !== '' && !preg_match('/[!@#$%^&*(),.?":{}|<>]/', $password)) {
         $error = 'Password must contain at least one special symbol (!@#$%^&*(),.?":{}|<>).';
     } else {
         $conflict = fetchOne(
             $conn,
             "
-            SELECT
-                CASE
-                    WHEN username = ? THEN 'username'
-                    WHEN email = ? THEN 'email'
-                END AS conflict
-            FROM Users
-            WHERE (username = ? OR email = ?)
-              AND user_id <> ?
+                SELECT
+                    CASE
+                        WHEN username = ? THEN 'username'
+                        WHEN email = ? THEN 'email'
+                    END AS conflict
+                FROM Users
+                WHERE (username = ? OR email = ?)
+                AND user_id <> ?
             ",
             [$username, $email, $username, $email, $userId]
         );
@@ -236,11 +237,14 @@ if (isset($_POST['update_admin'])) {
             }
         } else {
             if ($password !== '') {
-                $hash = hash('sha256', $password);
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+
                 sqlsrv_query(
                     $conn,
-                    "UPDATE Users SET full_name=?, password_hash=? WHERE user_id=? AND role='Admin'",
-                    [$fullName, $hash, $userId]
+                    "UPDATE Users
+                        SET full_name = ?, username = ?, email = ?, password_hash = ?
+                        WHERE user_id = ? AND role = 'Admin'",
+                    [$fullName, $username, $email, $hash, $userId]
                 );
 
                 auditLog(
@@ -251,14 +255,17 @@ if (isset($_POST['update_admin'])) {
                     'Users',
                     $userId,
                     json_encode([
-                        'updated_fields' => ['full_name', 'password']
+                        'updated_fields' => ['full_name', 'username', 'email', 'password']
                     ])
                 );
             } else {
                 sqlsrv_query(
                     $conn,
-                    "UPDATE Users SET full_name=? WHERE user_id=? AND role='Admin'",
-                    [$fullName, $userId]
+                    "UPDATE Users
+                        SET full_name = ?, username = ?, email = ?
+                        WHERE user_id = ? AND role = 'Admin'
+                    ",
+                    [$fullName, $username, $email, $userId]
                 );
 
                 auditLog(
@@ -269,7 +276,7 @@ if (isset($_POST['update_admin'])) {
                     'Users',
                     $userId,
                     json_encode([
-                        'updated_fields' => ['full_name']
+                        'updated_fields' => ['full_name', 'username', 'email']
                     ])
                 );
             }
