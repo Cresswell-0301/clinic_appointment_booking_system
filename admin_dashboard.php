@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/includes/setCookies.php';
+
 session_start();
 $pageTitle = 'Dashboard';
 

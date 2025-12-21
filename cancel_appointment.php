@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/includes/setCookies.php';
+
 session_start();
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/csrf.php';
