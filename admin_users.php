@@ -131,10 +131,9 @@ if (isset($_POST['create_user'])) {
                     WHEN email = ? THEN 'email'
                 END AS conflict
             FROM Users
-            WHERE (username = ? OR email = ?)
-              AND user_id <> ?
+            WHERE username = ? OR email = ?
             ",
-            [$username, $email, $username, $email, $userId]
+            [$username, $email, $username, $email]
         );
 
         if ($conflict) {
@@ -167,7 +166,7 @@ if (isset($_POST['create_user'])) {
             sqlsrv_begin_transaction($conn);
 
             try {
-                $passwordHash = hash('sha256', $password);
+                $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
                 $stmtUser = sqlsrv_query(
                     $conn,
@@ -273,87 +272,85 @@ if (isset($_POST['create_user'])) {
 
 
 if (isset($_POST['update_user'])) {
+
     $userId   = (int)$_POST['user_id'];
     $fullName = trim($_POST['full_name']);
     $role     = $_POST['role'];
     $password = $_POST['password'];
+    $email    = trim($_POST['email']);
+    $username = trim($_POST['username']);
 
-    $conflict = fetchOne(
+    // 1. Validate email
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Invalid email format.";
+        goto update_end;
+    }
+
+    // 2. Check email uniqueness
+    $emailExists = fetchOne(
         $conn,
-        "
-            SELECT
-                CASE
-                    WHEN username = ? THEN 'username'
-                    WHEN email = ? THEN 'email'
-                END AS conflict
-            FROM Users
-            WHERE (username = ? OR email = ?)
-              AND user_id <> ?
-            ",
-        [$username, $email, $username, $email, $userId]
+        "SELECT 1 FROM Users WHERE email = ? AND user_id <> ?",
+        [$email, $userId]
     );
 
-    if ($conflict) {
-        if ($conflict['conflict'] === 'username') {
-            auditLog(
-                $conn,
-                $_SESSION['user_id'],
-                $_SESSION['role'],
-                'UPDATE_FAILED',
-                'Users',
-                $userId,
-                'Attempted to update user ID: ' . $userId . ' with existing username: ' . $username
-            );
+    if ($emailExists) {
+        auditLog(
+            $conn,
+            $_SESSION['user_id'],
+            $_SESSION['role'],
+            'UPDATE_FAILED',
+            'Users',
+            $userId,
+            'Attempted update with existing email: ' . $email
+        );
+        $error = "Email already exists.";
+        goto update_end;
+    }
 
-            $error = "Username already exists.";
-        } else {
-            auditLog(
-                $conn,
-                $_SESSION['user_id'],
-                $_SESSION['role'],
-                'UPDATE_FAILED',
-                'Users',
-                $userId,
-                'Attempted to update user ID: ' . $userId . ' with existing email: ' . $email
-            );
+    // 3. Get old email
+    $oldEmailRow = fetchOne(
+        $conn,
+        "SELECT email FROM Users WHERE user_id = ?",
+        [$userId]
+    );
+    $oldEmail = $oldEmailRow['email'];
 
-            $error = "Email already exists.";
-        }
-    } else {
+    sqlsrv_begin_transaction($conn);
+
+    try {
         if ($password !== '') {
-            $passwordHash = hash('sha256', $password);
+            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
             $sql = "
-            UPDATE Users
-            SET full_name = ?, role = ?, is_active = ?, password_hash = ?
-            WHERE user_id = ?
-        ";
-
-            $params = [$fullName, $role, 1, $passwordHash, $userId];
+                UPDATE Users
+                SET username = ?,  full_name = ?, email = ?, role = ?, is_active = ?, password_hash = ?
+                WHERE user_id = ?
+            ";
+            $params = [$username, $fullName, $email, $role, 1, $passwordHash, $userId];
         } else {
             $sql = "
-            UPDATE Users
-            SET full_name = ?, role = ?, is_active = ?
-            WHERE user_id = ?
-        ";
-
-            $params = [$fullName, $role, 1, $userId];
+                UPDATE Users
+                SET username = ?, full_name = ?, email = ?, role = ?, is_active = ?
+                WHERE user_id = ?
+            ";
+            $params = [$username, $fullName, $email, $role, 1, $userId];
         }
 
+        sqlsrv_query($conn, $sql, $params);
+
+        // Doctor table
         if ($role === 'Doctor') {
             sqlsrv_query(
                 $conn,
                 "
-        IF EXISTS (SELECT 1 FROM Doctors WHERE user_id = ?)
-            UPDATE Doctors SET specialization = ? WHERE user_id = ?
-        ELSE
-            INSERT INTO Doctors (user_id, specialization) VALUES (?, ?)
-        ",
+                IF EXISTS (SELECT 1 FROM Doctors WHERE user_id = ?)
+                    UPDATE Doctors SET specialization = ? WHERE user_id = ?
+                ELSE
+                    INSERT INTO Doctors (user_id, specialization) VALUES (?, ?)
+                ",
                 [$userId, $_POST['specialization'], $userId, $userId, $_POST['specialization']]
             );
         }
-
-        sqlsrv_query($conn, $sql, $params);
 
         auditLog(
             $conn,
@@ -362,11 +359,17 @@ if (isset($_POST['update_user'])) {
             'UPDATE_SUCCESS',
             'Users',
             $userId,
-            'Updated user ID: ' . $userId . ' with role: ' . $role
+            "Email changed from {$oldEmail} to {$email}"
         );
 
-        $message = $role . " updated successfully.";
+        sqlsrv_commit($conn);
+        $message = "User updated successfully.";
+    } catch (Exception $e) {
+        sqlsrv_rollback($conn);
+        $error = "Update failed.";
     }
+
+    update_end:
     header("Refresh:1; url=admin_users.php");
 }
 
@@ -804,8 +807,10 @@ include __DIR__ . '/components/header.php';
     </div>
 </div>
 
-<script src="assets/js/modal.js" defer>
-    <?php if ($keepModalOpen): ?>
+<script src="assets/js/modal.js" defer></script>
+
+<?php if (!empty($keepModalOpen)): ?>
+    <script>
         document.addEventListener("DOMContentLoaded", function() {
             openScheduleModal();
             const err = document.getElementById("modalError");
@@ -814,8 +819,10 @@ include __DIR__ . '/components/header.php';
                 err.innerText = "<?php echo addslashes($error); ?>";
             }
         });
-    <?php endif; ?>
+    </script>
+<?php endif; ?>
 
+<script>
     function closeModal(id) {
         const modal = document.getElementById(id);
         modal.style.display = "none";

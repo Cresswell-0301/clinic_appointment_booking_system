@@ -53,12 +53,12 @@ function openEditUserModal(user) {
     document.getElementById("formMode").value = "edit";
     document.getElementById("editUserId").value = user.user_id;
 
-    document.querySelector("input[name='full_name']").value = user.full_name;
-    document.querySelector("input[name='username']").value = user.username;
-    document.querySelector("input[name='email']").value = user.email;
-
     document.getElementById("roleHidden").value = user.role;
     document.getElementById("modalRoleTitle").innerText = "Edit " + user.role;
+
+    document.querySelector("input[name='full_name']").value = user.full_name;
+    document.querySelector("input[name='username']").value = user.username;
+    modal.querySelector("input[name='email']").value = user.email;
 
     // Password optional
     document.querySelector("input[name='password']").required = false;
