@@ -98,6 +98,17 @@ BEGIN
 END
 ";
 
+// LOGIN ATTEMPTS
+$queries[] = "
+IF OBJECT_ID('dbo.LoginAttempts', 'U') IS NULL
+BEGIN
+    CREATE TABLE LoginAttempts (
+        username VARCHAR(50),
+        attempt_time DATETIME DEFAULT GETDATE()
+    );
+END
+"
+
 foreach ($queries as $sql) {
     $stmt = sqlsrv_query($conn, $sql);
     if ($stmt === false) {

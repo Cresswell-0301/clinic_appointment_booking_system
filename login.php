@@ -64,19 +64,49 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: login.php');
         exit;
     } else {
+        // Only count failed attempts within the last 10 minutes
+        $sql = "SELECT COUNT(*) AS attempts
+        FROM LoginAttempts WHERE username = ? AND attempt_time > DATEADD(MINUTE, -10, GETDATE())";
 
-        // $passwordHash = hash('sha256', $password);
+        $stmt = sqlsrv_query($conn, $sql, [$username]);
+        $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+
+        if ($row && $row['attempts'] >= 5) {
+            auditLog(
+                $conn,
+                null,
+                'Guest',
+                'LOGIN_LOCKOUT',
+                'Users',
+                null,
+                'Account locked due to too many failed login attempts'
+            );
+
+            $_SESSION['login_error'] = 'Too many login attempts. Please try again later.';
+            header('Location: login.php');
+            exit;
+        }
 
         $sql = "SELECT user_id, username, full_name, password_hash, role
         FROM Users WHERE username = ? AND is_active = 1";
 
         $stmt = sqlsrv_prepare($conn, $sql, [$username]);
 
-        sqlsrv_execute($stmt);
+        if (!$stmt || !sqlsrv_execute($stmt)) {
+            $_SESSION['login_error'] = 'System error. Please try again later.';
+            header('Location: login.php');
+            exit;
+        }
 
         $user = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password_hash'])) {
+
+            sqlsrv_query(
+                $conn,
+                "DELETE FROM LoginAttempts WHERE username = ?",
+                [$username]
+            );
 
             session_regenerate_id(true);
 
@@ -85,6 +115,13 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['full_name'] = $user['full_name'];
             $_SESSION['role'] = $user['role'];
         } else {
+
+            sqlsrv_query(
+                $conn,
+                "INSERT INTO LoginAttempts (username) VALUES (?)",
+                [$username]
+            );
+
             auditLog(
                 $conn,
                 null,
@@ -95,7 +132,9 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'Failed login attempt: Invalid credentials'
             );
 
-            $errors[] = "Invalid username or password.";
+            $_SESSION['login_error'] = 'Invalid username or password.';
+            header('Location: login.php');
+            exit;
         }
 
         if ($stmt === false) {
