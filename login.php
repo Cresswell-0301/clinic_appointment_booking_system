@@ -65,15 +65,38 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     } else {
 
-        $passwordHash = hash('sha256', $password);
+        // $passwordHash = hash('sha256', $password);
 
-        $sql = "SELECT user_id, full_name, email, phone_number, role
-                FROM Users 
-                WHERE username = ? AND password_hash = ?";
+        $sql = "SELECT user_id, username, full_name, password_hash, role
+        FROM Users WHERE username = ? AND is_active = 1";
 
-        $params = [$username, $passwordHash];
+        $stmt = sqlsrv_prepare($conn, $sql, [$username]);
 
-        $stmt = sqlsrv_prepare($conn, $sql, $params);
+        sqlsrv_execute($stmt);
+
+        $user = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+
+        if ($user && password_verify($password, $user['password_hash'])) {
+
+            session_regenerate_id(true);
+
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['full_name'] = $user['full_name'];
+            $_SESSION['role'] = $user['role'];
+        } else {
+            auditLog(
+                $conn,
+                null,
+                'Guest',
+                'LOGIN_FAILED',
+                'Users',
+                null,
+                'Failed login attempt: Invalid credentials'
+            );
+
+            $errors[] = "Invalid username or password.";
+        }
 
         if ($stmt === false) {
             $_SESSION['login_error'] = 'An internal error occurred. Please try again later.';
@@ -139,6 +162,13 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         header('Location: login.php');
                         exit;
+                    }
+
+                    if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
+                        $newHash = password_hash($password, PASSWORD_DEFAULT);
+
+                        $updateSql = "UPDATE Users SET password_hash = ? WHERE user_id = ?";
+                        sqlsrv_query($conn, $updateSql, [$newHash, $user['user_id']]);
                     }
 
                     $_SESSION['user_id']    = $row['user_id'];

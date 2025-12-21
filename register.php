@@ -67,8 +67,7 @@ if (isset($_POST['register_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         'Attempted registration with existing username: ' . $username
                     );
                 } else {
-                    // Hash password using SHA-256
-                    $passwordHash = hash('sha256', $password);
+                    $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
                     // Insert new patient user
                     $insertSql = "INSERT INTO Users (username, password_hash, full_name, email, phone_number, role) 

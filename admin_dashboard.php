@@ -44,7 +44,7 @@ include __DIR__ . '/components/header.php';
 <div class="content-wrapper">
     <div class="admin-dashboard">
 
-        <h2 class="welcome-text">Welcome, Admin <?php echo htmlspecialchars($_SESSION['full_name']); ?></h2>
+        <h2 class="welcome-text">Welcome, <?php echo htmlspecialchars($_SESSION['full_name']); ?></h2>
 
         <!-- Cards -->
         <div class="summary-grid">
