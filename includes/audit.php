@@ -9,7 +9,7 @@ function auditLog(
     ?int $entityId,
     ?string $actionDetails = null
 ) {
-    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+    $ipAddress = getClientIp();
 
     $sql = "
         INSERT INTO AuditLogs
@@ -28,4 +28,27 @@ function auditLog(
     ];
 
     sqlsrv_query($conn, $sql, $params);
+}
+
+function getClientIp(): string
+{
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        $ip = trim($_SERVER['HTTP_CF_CONNECTING_IP']);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+    }
+
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        foreach ($parts as $p) {
+            $ip = trim($p);
+            if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+        }
+    }
+
+    if (!empty($_SERVER['HTTP_X_REAL_IP'])) {
+        $ip = trim($_SERVER['HTTP_X_REAL_IP']);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+    }
+
+    return $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
 }

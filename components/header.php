@@ -92,6 +92,13 @@ $fullTitle = isset($pageTitle) && $pageTitle !== ''
                         class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_appointments.php' ? 'active' : ''; ?>">
                         All Appointments
                     </a>
+
+                    <?php if ($userRole === 'SuperAdmin'): ?>
+                        <a href="admin_audit_logs.php" style="text-decoration: none;"
+                            class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_audit_logs.php' ? 'active' : ''; ?>">
+                            Audit Logs
+                        </a>
+                    <?php endif; ?>
                 </div>
 
                 <div class="admin-logout">
