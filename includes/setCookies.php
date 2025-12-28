@@ -8,3 +8,5 @@ session_set_cookie_params([
     'httponly' => true,
     'samesite' => 'Strict'
 ]);
+
+date_default_timezone_set('Asia/Kuala_Lumpur');

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/includes/setCookies.php';
 
 session_start();
+$now = new DateTime();
 
 $pageTitle = 'Appointment Management';
 
@@ -158,6 +159,45 @@ include __DIR__ . '/components/header.php';
             padding: 16px;
         }
     }
+
+    .btn {
+        padding: 8px 14px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(0.99);
+    }
+
+    .btn-warning {
+        background: #fbc02d;
+        color: #000;
+    }
+
+    .btn-danger {
+        background: #e53935;
+        color: #fff;
+    }
+
+    .btn-success {
+        background: #43a047;
+        color: #fff;
+    }
+
+    .btn-secondary {
+        background: #9e9e9e;
+        color: #fff;
+    }
 </style>
 
 <div class="content-wrapper">
@@ -226,6 +266,7 @@ include __DIR__ . '/components/header.php';
                         Status <?= $statusArrow ?>
                     </a>
                 </th>
+                <th>Action</th>
             </tr>
 
             <?php if (empty($appointments)): ?>
@@ -234,6 +275,13 @@ include __DIR__ . '/components/header.php';
                 </tr>
             <?php else: ?>
                 <?php foreach ($appointments as $a): ?>
+                    <?php
+                    $now = new DateTime('now');
+                    $canCancel =
+                        $a['status'] === 'Booked' &&
+                        $a['appointment_dt'] >= $now;
+                    ?>
+
                     <tr>
                         <td><?= $a['appointment_dt']->format('Y-m-d H:i') ?></td>
                         <td><?= htmlspecialchars($a['patient_name']) ?></td>
@@ -244,6 +292,22 @@ include __DIR__ . '/components/header.php';
                                 <?= $a['status'] ?>
                             </span>
                         </td>
+                        <td>
+                            <?php if ($canCancel): ?>
+                                <form method="post" action="admin_cancel_appointment.php"
+                                    onsubmit="return confirm('Cancel this appointment?');"
+                                    style="margin:0;">
+                                    <input type="hidden" name="appointment_id"
+                                        value="<?= (int)$a['appointment_id'] ?>">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        Cancel
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <span style="color:#999;">N/A</span>
+                            <?php endif; ?>
+                        </td>
+
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
