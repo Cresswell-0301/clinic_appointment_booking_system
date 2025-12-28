@@ -146,7 +146,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'CANCEL_APPOINTMENT_SUCCESS',
             'Appointments',
             $apptId,
-            'Successfully cancelled appointment ID: ' . $apptId
+            'Successfully cancelled appointment ID: ' . $apptId . json_encode([
+                'doctor_id'       => $appt['doctor_id'],
+                'appointment_date'=> $dateStr,
+                'appointment_time'=> $timeStr
+            ])
         );
 
         // Redirect with success message

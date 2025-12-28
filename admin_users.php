@@ -246,7 +246,10 @@ if (isset($_POST['create_user'])) {
                     'CREATE_SUCCESS',
                     'Users',
                     $newUser['user_id'],
-                    'Created new user ID: ' . $newUser['user_id'] . ' with role: ' . $role
+                    'Created new user: ' . json_encode([
+                        'user_id' => $newUser['user_id'],
+                        'role'    => $role
+                    ])
                 );
 
                 $message = ucfirst($role) . " created successfully.";

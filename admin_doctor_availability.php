@@ -161,7 +161,13 @@ if (isset($_POST['book_appointment'])) {
             'BOOKING_SUCCESS',
             'Appointments',
             null,
-            'Appointment booked successfully'
+            'Appointment booked successfully: ' . json_encode([
+                'availability_id' => $availabilityId,
+                'patient_id'      => $patientId,
+                'doctor_id'       => $doctorId,
+                'appointment_date'=> $date,
+                'appointment_time'=> $time
+            ])
         );
 
         header("Location: admin_doctor_availability.php");

@@ -136,7 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_submit'])) {
                         'CANCEL_APPOINTMENT_SUCCESS',
                         'Appointments',
                         $apptId,
-                        'Successfully cancelled appointment ID: ' . $apptId
+                        'Successfully cancelled appointment ID: ' . $apptId . json_encode([
+                            'doctor_id'       => $appt['doctor_id'],
+                            'appointment_date'=> $appt['appointment_date']->format('Y-m-d'),
+                            'appointment_time'=> $appt['appointment_time']->format('H:i:s')
+                        ])
                     );
 
                     $success = 'Appointment cancelled.';

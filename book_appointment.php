@@ -194,7 +194,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_submit'])) {
                         'CREATE',
                         'Appointments',
                         $appointmentId,
-                        'Appointment booked'
+                        'Appointment booked successfully: ' . json_encode([
+                            'availability_id' => $availabilityId,
+                            'patient_id'      => $_SESSION['user_id'],
+                            'doctor_id'       => $doctorId,
+                            'appointment_date'=> $avail['available_date']->format('Y-m-d'),
+                            'appointment_time'=> $avail['available_time']->format('H:i:s')
+                        ])
                     );
 
                     $success = 'Appointment booked successfully.';

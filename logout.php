@@ -18,7 +18,10 @@ auditLog(
     'LOGOUT',
     'Session',
     null,
-    'User logged out successfully'
+    'User logged out successfully' . json_encode([
+        'user_id' => $userId,
+        'role'    => $userRole
+    ])
 );
 
 $_SESSION = [];

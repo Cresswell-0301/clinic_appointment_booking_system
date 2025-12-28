@@ -180,9 +180,11 @@ if (isset($_POST['create_admin'])) {
                 'CREATE',
                 'Users',
                 $newAdminId,
-                json_encode([
-                    'username' => $username,
-                    'email' => $email
+                'Admin created successfully: ' . json_encode([
+                    'full_name' => $fullName,
+                    'username'  => $username,
+                    'email'     => $email,
+                    'role'      => 'Admin'
                 ])
             );
 
@@ -332,7 +334,9 @@ if (isset($_GET['disable'])) {
             'UPDATE',
             'Users',
             $id,
-            'Admin account disabled'
+            'Admin account disabled' . json_encode([
+                'disabled_user_id' => $id
+            ])
         );
 
         $message = "Admin disabled.";
@@ -352,7 +356,9 @@ if (isset($_GET['activate'])) {
         'UPDATE',
         'Users',
         $id,
-        'Admin account activated'
+        'Admin account activated' . json_encode([
+            'activated_user_id' => $id
+        ])
     );
 
     $message = "Admin activated.";
@@ -420,7 +426,9 @@ if (isset($_GET['delete'])) {
                 'DELETE',
                 'Users',
                 $id,
-                'Admin account deleted'
+                'Admin account deleted' . json_encode([
+                    'deleted_user_id' => $id
+                ])
             );
 
             $message = "Admin deleted successfully.";

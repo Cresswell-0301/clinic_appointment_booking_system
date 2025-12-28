@@ -204,9 +204,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modify_submit'])) {
                         'RESCHEDULE_APPOINTMENT_SUCCESS',
                         'Appointments',
                         $apptId,
-                        'Successfully rescheduled appointment ID: ' . $apptId .
-                            ' to ' . $newSlot['available_date']->format('Y-m-d') .
-                            ' at ' . $newSlot['available_time']->format('H:i')
+                        'Rescheduled appointment ID: ' . $apptId . ' to new slot: ' . json_encode([
+                            'availability_id' => $newAvailabilityId,
+                            'new_date'        => $newSlot['available_date']->format('Y-m-d'),
+                            'new_time'        => $newSlot['available_time']->format('H:i:s')
+                        ])
                     );
 
                     $success = "Appointment rescheduled successfully!";

@@ -228,7 +228,10 @@ if (isset($_POST['login_submit']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         'LOGIN',
                         'Users',
                         $row['user_id'],
-                        'User login successful'
+                        'User login successful' . json_encode([
+                            'username' => $row['username'],
+                            'role'     => $row['role']
+                        ])
                     );
 
                     switch ($row['role']) {
