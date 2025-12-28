@@ -119,6 +119,47 @@ function arrowIcon($key, $currentKey, $order)
 include __DIR__ . '/components/header.php';
 ?>
 
+<style>
+    .admin-container {
+        background: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-container h2 {
+        margin: 0 0 14px;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+
+    .filter-bar input[type="text"],
+    .filter-bar input[type="date"],
+    .filter-bar select {
+        height: 36px;
+        padding: 0 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        box-sizing: border-box;
+    }
+
+    .table-admin tbody tr:hover {
+        background: rgba(30, 136, 229, 0.05);
+    }
+
+    @media (max-width: 640px) {
+        .admin-container {
+            padding: 16px;
+        }
+    }
+</style>
+
 <div class="content-wrapper">
     <div class="admin-container">
 

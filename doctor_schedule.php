@@ -267,18 +267,348 @@ $availabilityList = fetchAll($conn, $sqlAvailability, [$doctorId]);
 include __DIR__ . '/components/header.php';
 ?>
 
+<style>
+    :root {
+        --ds-bg: #f4f7fb;
+        --ds-card: #ffffff;
+        --ds-text: #0f172a;
+        --ds-muted: #64748b;
+        --ds-border: rgba(15, 23, 42, 0.10);
+        --ds-primary: #1e88e5;
+        --ds-primary-2: #1565c0;
+        --ds-danger: #e53935;
+        --ds-success: #10b981;
+        --ds-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        --ds-radius: 14px;
+    }
+
+    body {
+        margin: 0;
+        background: radial-gradient(1200px 600px at 10% 0%, rgba(30, 136, 229, 0.12), transparent 60%),
+            radial-gradient(900px 500px at 100% 10%, rgba(99, 102, 241, 0.10), transparent 55%),
+            var(--ds-bg);
+        color: var(--ds-text);
+    }
+
+    .modal-content,
+    .modal-content * {
+        box-sizing: border-box;
+    }
+
+    .doctor-schedule {
+        max-width: 1100px;
+        margin: 26px auto 40px;
+        padding: 22px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.98));
+        border-radius: var(--ds-radius);
+        box-shadow: var(--ds-shadow);
+        border: 1px solid var(--ds-border);
+    }
+
+    .ds-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 4px 4px 14px;
+        border-bottom: 1px solid var(--ds-border);
+        margin-bottom: 16px;
+    }
+
+    .ds-header h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+    }
+
+    .ds-subtitle {
+        margin-top: 6px;
+        color: var(--ds-muted);
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .ds-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .ds-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-weight: 900;
+        text-decoration: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+        white-space: nowrap;
+    }
+
+    .ds-btn-primary {
+        background: linear-gradient(180deg, var(--ds-primary), var(--ds-primary-2));
+        color: #fff;
+        box-shadow: 0 12px 20px rgba(30, 136, 229, 0.18);
+    }
+
+    .ds-btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 26px rgba(30, 136, 229, 0.22);
+        filter: brightness(1.02);
+    }
+
+    .ds-btn-secondary {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(15, 23, 42, 0.14);
+        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .ds-btn-secondary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 22px rgba(15, 23, 42, 0.08);
+    }
+
+    .modal {
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(6px);
+    }
+
+    .modal-content {
+        width: min(760px, calc(100% - 28px));
+        border-radius: 16px;
+        border: 1px solid var(--ds-border);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.99));
+    }
+
+    .modal-content h3 {
+        margin: 0 0 12px;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+    }
+
+    .schedule-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .schedule-form-grid > div {
+        min-width: 0;
+    }
+
+    .schedule-form-grid label {
+        display: block;
+        font-weight: 800;
+        color: var(--ds-text);
+        margin-bottom: 6px;
+        font-size: 13px;
+    }
+
+    .schedule-form-grid input[type="date"],
+    .schedule-form-grid input[type="time"],
+    .schedule-form-grid select {
+        width: 100%;
+        padding: 11px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--ds-border);
+        background: #fff;
+        outline: none;
+    }
+
+    .schedule-form-grid input[type="date"]:focus,
+    .schedule-form-grid input[type="time"]:focus,
+    .schedule-form-grid select:focus {
+        border-color: rgba(30, 136, 229, 0.55);
+        box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.12);
+    }
+
+    .full-width {
+        grid-column: 1 / -1;
+    }
+
+    .day-checkbox-group {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding: 10px;
+        background: rgba(100, 116, 139, 0.06);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 12px;
+    }
+
+    .day-checkbox-group label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(15, 23, 42, 0.10);
+        background: rgba(255, 255, 255, 0.85);
+        margin: 0;
+        font-weight: 800;
+        cursor: pointer;
+        user-select: none;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .day-checkbox-group input[type="checkbox"] {
+        transform: scale(1.1);
+        accent-color: var(--ds-primary);
+    }
+
+    .btn-row {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 14px;
+        flex-wrap: wrap;
+    }
+
+    .btn-row .ds-btn {
+        flex: 1 1 220px;
+        height: 46px;
+    }
+
+    #modalError {
+        border-radius: 12px;
+        padding: 10px 12px;
+        border: 1px solid rgba(229, 57, 53, 0.28);
+        background: rgba(229, 57, 53, 0.08);
+        color: #7f1d1d;
+    }
+
+    @media (max-width: 640px) {
+        .schedule-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .day-checkbox-group {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .btn-row {
+            justify-content: stretch;
+        }
+
+        .btn-row .ds-btn {
+            width: 100%;
+        }
+    }
+
+    .ds-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--ds-border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .ds-table thead {
+        background: rgba(100, 116, 139, 0.08);
+    }
+
+    .ds-table th,
+    .ds-table td {
+        padding: 12px;
+        text-align: center;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        vertical-align: middle;
+    }
+
+    .ds-table tbody tr:hover {
+        background: rgba(30, 136, 229, 0.05);
+    }
+
+    .ds-sort-link {
+        color: var(--ds-text);
+        text-decoration: none;
+        font-weight: 900;
+    }
+
+    .ds-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+        border: 1px solid transparent;
+    }
+
+    .ds-badge-available {
+        color: #065f46;
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .ds-badge-booked {
+        color: #7c2d12;
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.25);
+    }
+
+    .ds-btn-danger {
+        background: var(--ds-danger);
+        color: #fff;
+        border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .ds-btn-danger:hover {
+        filter: brightness(0.98);
+        transform: translateY(-1px);
+    }
+
+    .ds-btn-disabled {
+        background: #e5e7eb;
+        color: #6b7280;
+        cursor: not-allowed;
+        border-color: rgba(15, 23, 42, 0.10);
+    }
+
+    @media (max-width: 860px) {
+        .doctor-schedule {
+            margin: 18px 12px 28px;
+            padding: 16px;
+        }
+
+        .ds-header {
+            flex-direction: column;
+        }
+    }
+</style>
+
 <div class="content-wrapper">
 
-    <div class="admin-dashboard">
-        <h2 class="welcome-text">My Availability Schedule</h2>
+    <div class="admin-dashboard doctor-schedule">
+        <div class="ds-header">
+            <div>
+                <h2 class="welcome-text">My Availability Schedule</h2>
+                <div class="ds-subtitle">Create and manage your upcoming availability slots. Booked slots are locked.</div>
+            </div>
+            <div class="ds-actions">
+                <button class="ds-btn ds-btn-primary" type="button" onclick="openModal('scheduleModal')">Add Schedule</button>
+            </div>
+        </div>
 
         <?php if ($message): ?>
             <div class="success-message"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
 
-        <button class="btn-primary" style="margin-bottom:20px;" onclick="openModal('scheduleModal')">
-            Add Schedule
-        </button>
+        <?php if ($error && !$keepModalOpen): ?>
+            <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
+
 
         <!-- Add availability -->
         <div id="scheduleModal" class="modal">
@@ -377,11 +707,11 @@ include __DIR__ . '/components/header.php';
 
                     <!-- Buttons -->
                     <div class="btn-row">
-                        <button class="btn-primary" id="generateBtn" type="submit" name="add_availability">
+                        <button class="ds-btn ds-btn-primary" id="generateBtn" type="submit" name="add_availability">
                             Generate Availability
                         </button>
 
-                        <button type="button" class="btn-secondary" onclick="closeModal('scheduleModal')">
+                        <button type="button" class="ds-btn ds-btn-secondary" onclick="closeModal('scheduleModal')">
                             Close
                         </button>
                     </div>
@@ -391,80 +721,92 @@ include __DIR__ . '/components/header.php';
         </div>
 
         <!-- Availability List -->
-        <h3>Upcoming Availability</h3>
+        <div class="ds-panel" style="margin-top:16px;">
+            <div class="ds-panel-title">Upcoming Availability</div>
 
-        <?php
-        $dateArrow = $timeArrow = $statusArrow = '<i class="fa-solid fa-angle-down"></i>';
+            <?php
+            $dateArrow = $timeArrow = $statusArrow = '<i class="fa-solid fa-angle-down"></i>';
 
-        if ($sortColumn === 'available_date') {
-            $dateArrow = ($sortOrder === 'ASC')
-                ? '<i class="fa-solid fa-angle-up"></i>'
-                : '<i class="fa-solid fa-angle-down"></i>';
-        }
+            if ($sortColumn === 'available_date') {
+                $dateArrow = ($sortOrder === 'ASC')
+                    ? '<i class="fa-solid fa-angle-up"></i>'
+                    : '<i class="fa-solid fa-angle-down"></i>';
+            }
 
-        if ($sortColumn === 'available_time') {
-            $timeArrow = ($sortOrder === 'ASC')
-                ? '<i class="fa-solid fa-angle-up"></i>'
-                : '<i class="fa-solid fa-angle-down"></i>';
-        }
+            if ($sortColumn === 'available_time') {
+                $timeArrow = ($sortOrder === 'ASC')
+                    ? '<i class="fa-solid fa-angle-up"></i>'
+                    : '<i class="fa-solid fa-angle-down"></i>';
+            }
 
-        if ($sortColumn === 'is_booked') {
-            $statusArrow = ($sortOrder === 'ASC')
-                ? '<i class="fa-solid fa-angle-up"></i>'
-                : '<i class="fa-solid fa-angle-down"></i>';
-        }
-        ?>
+            if ($sortColumn === 'is_booked') {
+                $statusArrow = ($sortOrder === 'ASC')
+                    ? '<i class="fa-solid fa-angle-up"></i>'
+                    : '<i class="fa-solid fa-angle-down"></i>';
+            }
+            ?>
 
-        <table style="width:100%;background:white;border-radius:8px;padding:15px; text-align:center;">
-            <tr>
-                <th>
-                    <a href="?sort=available_date&order=<?php echo ($sortColumn == 'available_date' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
-                        style=" text-decoration:none; color: black;">
-                        Date <?php echo $dateArrow; ?>
-                    </a>
-                </th>
-
-                <th>
-                    <a href="?sort=available_time&order=<?php echo ($sortColumn == 'available_time' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
-                        style=" text-decoration:none; color: black;">
-                        Time <?php echo $timeArrow; ?>
-                    </a>
-                </th>
-
-                <th>
-                    <a href="?sort=is_booked&order=<?php echo ($sortColumn == 'is_booked' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
-                        style=" text-decoration:none; color: black;">
-                        Status <?php echo $statusArrow; ?>
-                    </a>
-                </th>
-
-                <th>Action</th>
-            </tr>
-
-            <?php if (empty($availabilityList)): ?>
-                <tr>
-                    <td colspan="4" style="text-align:center;">No availability slots added yet.</td>
-                </tr>
-            <?php else: ?>
-                <?php foreach ($availabilityList as $slot): ?>
+            <table class="ds-table">
+                <thead>
                     <tr>
-                        <td><?php echo $slot['available_date']->format('Y-m-d'); ?></td>
-                        <td><?php echo $slot['available_time']->format('H:i'); ?></td>
-                        <td>
-                            <?php echo $slot['is_booked'] ? 'Booked' : 'Available'; ?>
-                        </td>
-                        <td>
-                            <?php if (!$slot['is_booked']): ?>
-                                <a href="?delete=<?php echo $slot['availability_id']; ?>" class="admin-btn" style="background:#e53935;">Delete</a>
-                            <?php else: ?>
-                                <span class="admin-btn" style="color:gray; background:#e0e0e0;">Locked</span>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                        <th>
+                            <a href="?sort=available_date&order=<?php echo ($sortColumn == 'available_date' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
+                                class="ds-sort-link">
+                                Date <?php echo $dateArrow; ?>
+                            </a>
+                        </th>
 
-        </table>
+                        <th>
+                            <a href="?sort=available_time&order=<?php echo ($sortColumn == 'available_time' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
+                                class="ds-sort-link">
+                                Time <?php echo $timeArrow; ?>
+                            </a>
+                        </th>
+
+                        <th>
+                            <a href="?sort=is_booked&order=<?php echo ($sortColumn == 'is_booked' && $sortOrder == 'ASC') ? 'desc' : 'asc'; ?>"
+                                class="ds-sort-link">
+                                Status <?php echo $statusArrow; ?>
+                            </a>
+                        </th>
+
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <?php if (empty($availabilityList)): ?>
+                        <tr>
+                            <td colspan="4" style="text-align:center;">No availability slots added yet.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($availabilityList as $slot): ?>
+                            <tr>
+                                <td><?php echo $slot['available_date']->format('Y-m-d'); ?></td>
+                                <td><?php echo $slot['available_time']->format('H:i'); ?></td>
+                                <td>
+                                    <?php if ($slot['is_booked']): ?>
+                                        <span class="ds-badge ds-badge-booked">Booked</span>
+                                    <?php else: ?>
+                                        <span class="ds-badge ds-badge-available">Available</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if (!$slot['is_booked']): ?>
+                                        <a href="?delete=<?php echo $slot['availability_id']; ?>" class="ds-btn ds-btn-danger">Delete</a>
+                                    <?php else: ?>
+                                        <span class="ds-btn ds-btn-disabled">Locked</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+
+                </tbody>
+            </table>
+
+        </div>
 
     </div>
 </div>

@@ -476,6 +476,8 @@ include __DIR__ . '/components/header.php';
         padding: 25px;
         padding-top: 10px;
         border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
     }
 
     .admin-header {
@@ -483,6 +485,8 @@ include __DIR__ . '/components/header.php';
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        gap: 12px;
+        flex-wrap: wrap;
     }
 
     .admin-header h2 {
@@ -496,6 +500,16 @@ include __DIR__ . '/components/header.php';
         font-size: 14px;
         cursor: pointer;
         border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(0.99);
     }
 
     .btn-primary {
@@ -527,6 +541,9 @@ include __DIR__ . '/components/header.php';
     .table-admin {
         width: 100%;
         border-collapse: collapse;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 10px;
+        overflow: hidden;
     }
 
     .table-admin th,
@@ -540,10 +557,15 @@ include __DIR__ . '/components/header.php';
         background: #f5f7fa;
     }
 
+    .table-admin tbody tr:hover {
+        background: rgba(30, 136, 229, 0.05);
+    }
+
     .badge {
         padding: 4px 8px;
         border-radius: 12px;
         font-size: 12px;
+        font-weight: 700;
     }
 
     .badge-active {
@@ -570,6 +592,16 @@ include __DIR__ . '/components/header.php';
         padding: 10px;
         border-radius: 6px;
         margin-bottom: 15px;
+    }
+
+    @media (max-width: 860px) {
+        .admin-container {
+            padding: 16px;
+        }
+
+        .admin-header {
+            align-items: stretch;
+        }
     }
 </style>
 

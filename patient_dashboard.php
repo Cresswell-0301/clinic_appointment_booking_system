@@ -61,84 +61,221 @@ $nextAppointment = sqlsrv_fetch_array($stmtNext, SQLSRV_FETCH_ASSOC);
 
 include __DIR__ . '/components/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <style>
+<style>
+    :root {
+        --pd-bg: #f4f7fb;
+        --pd-card: #ffffff;
+        --pd-text: #0f172a;
+        --pd-muted: #64748b;
+        --pd-border: rgba(15, 23, 42, 0.08);
+        --pd-primary: #1e88e5;
+        --pd-primary-2: #1565c0;
+        --pd-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        --pd-radius: 14px;
+    }
+
+    body {
+        margin: 0;
+        background: radial-gradient(1200px 600px at 10% 0%, rgba(30, 136, 229, 0.12), transparent 60%),
+            radial-gradient(900px 500px at 100% 10%, rgba(99, 102, 241, 0.10), transparent 55%),
+            var(--pd-bg);
+        color: var(--pd-text);
+    }
+
+    .dashboard-container {
+        max-width: 900px;
+        margin: 26px auto 40px;
+        padding: 22px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.98));
+        border-radius: var(--pd-radius);
+        box-shadow: var(--pd-shadow);
+        border: 1px solid var(--pd-border);
+    }
+
+    .dashboard-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 4px 4px 14px;
+        border-bottom: 1px solid var(--pd-border);
+    }
+
+    .dashboard-header h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+
+    .dashboard-subtitle {
+        margin-top: 6px;
+        color: var(--pd-muted);
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 16px;
+    }
+
+    .panel {
+        background: var(--pd-card);
+        border-radius: 12px;
+        border: 1px solid var(--pd-border);
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+        padding: 14px;
+    }
+
+    .section-title {
+        margin: 0 0 10px;
+        font-weight: 800;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .section-title .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(30, 136, 229, 0.10);
+        color: var(--pd-primary-2);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .appointment-card {
+        padding: 12px;
+        border: 1px solid var(--pd-border);
+        border-radius: 12px;
+        margin-bottom: 10px;
+        background: linear-gradient(180deg, rgba(30, 136, 229, 0.06), rgba(255, 255, 255, 0.9));
+        border-left: 5px solid var(--pd-primary);
+        line-height: 1.45;
+    }
+
+    .appointment-card strong {
+        color: var(--pd-text);
+    }
+
+    .muted-empty {
+        color: var(--pd-muted);
+        font-style: normal;
+        background: rgba(100, 116, 139, 0.08);
+        border: 1px dashed rgba(100, 116, 139, 0.25);
+        border-radius: 12px;
+        padding: 12px;
+        margin: 0;
+    }
+
+    .dashboard-actions {
+        margin-top: 18px;
+    }
+
+    .dashboard-actions .section-title {
+        margin-bottom: 12px;
+    }
+
+    .dashboard-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .dashboard-links a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 14px;
+        background: linear-gradient(180deg, var(--pd-primary), var(--pd-primary-2));
+        color: #fff;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        box-shadow: 0 10px 18px rgba(30, 136, 229, 0.18);
+        transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    }
+
+    .dashboard-links a:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 26px rgba(30, 136, 229, 0.22);
+        filter: brightness(1.02);
+    }
+
+    .dashboard-links a:active {
+        transform: translateY(0);
+    }
+
+    @media (max-width: 860px) {
         .dashboard-container {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 24px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+            margin: 18px 12px 28px;
+            padding: 16px;
         }
 
-        .section-title {
-            margin-top: 25px;
-            margin-bottom: 10px;
-            font-weight: bold;
-            font-size: 20px;
+        .dashboard-grid {
+            grid-template-columns: 1fr;
         }
+    }
 
-        .appointment-card {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            background: #f8f9fa;
-            border-left: 5px solid #1e88e5; /* Added a blue accent */
+    @media (max-width: 520px) {
+        .dashboard-links {
+            grid-template-columns: 1fr;
         }
+    }
+</style>
 
-        .dashboard-links a {
-            display: block;
-            padding: 12px;
-            margin-top: 15px;
-            background: #1e88e5;
-            color: #fff;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-        }
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h2>Welcome, <?php echo htmlspecialchars($_SESSION['full_name']); ?></h2>
+            <div class="dashboard-subtitle">Manage your appointments quickly from one place.</div>
+        </div>
+    </div>
 
-        .dashboard-links a:hover {
-            background: #1565c0;
-        }
-    </style>
-</head>
+    <div class="dashboard-grid">
+        <div class="panel">
+            <div class="section-title"><span class="badge">Today</span> Today's Appointments</div>
+            <?php if (empty($todaysAppointments)): ?>
+                <p class="muted-empty">No active appointments for today.</p>
+            <?php else: ?>
+                <?php foreach ($todaysAppointments as $appt): ?>
+                    <div class="appointment-card">
+                        <strong>Doctor:</strong> <?= htmlspecialchars($appt['doctor_name']) ?><br>
+                        <strong>Time:</strong> <?= $appt['appointment_time']->format('H:i') ?>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
 
-<body>
-
-    <div class="dashboard-container">
-        <h2>Welcome, <?php echo htmlspecialchars($_SESSION['full_name']); ?></h2>
-
-        <div class="section-title">Today's Appointments</div>
-        <?php if (empty($todaysAppointments)): ?>
-            <p style="color: #666; font-style: italic;">No active appointments for today.</p>
-        <?php else: ?>
-            <?php foreach ($todaysAppointments as $appt): ?>
+        <div class="panel">
+            <div class="section-title"><span class="badge">Next</span> Next Upcoming Appointment</div>
+            <?php if ($nextAppointment): ?>
                 <div class="appointment-card">
-                    <strong>Doctor:</strong> <?= htmlspecialchars($appt['doctor_name']) ?><br>
-                    <strong>Time:</strong> <?= $appt['appointment_time']->format('H:i') ?>
+                    <strong>Date:</strong> <?= $nextAppointment['appointment_date']->format('Y-m-d') ?><br>
+                    <strong>Time:</strong> <?= $nextAppointment['appointment_time']->format('H:i') ?><br>
+                    <strong>Doctor:</strong> <?= htmlspecialchars($nextAppointment['doctor_name']) ?>
                 </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+            <?php else: ?>
+                <p class="muted-empty">No upcoming appointments found.</p>
+            <?php endif; ?>
+        </div>
+    </div>
 
-        <div class="section-title">Next Upcoming Appointment</div>
-        <?php if ($nextAppointment): ?>
-            <div class="appointment-card">
-                <strong>Date:</strong> <?= $nextAppointment['appointment_date']->format('Y-m-d') ?><br>
-                <strong>Time:</strong> <?= $nextAppointment['appointment_time']->format('H:i') ?><br>
-                <strong>Doctor:</strong> <?= htmlspecialchars($nextAppointment['doctor_name']) ?>
-            </div>
-        <?php else: ?>
-            <p style="color: #666; font-style: italic;">No upcoming appointments found.</p>
-        <?php endif; ?>
-
+    <div class="dashboard-actions">
+        <div class="section-title"><span class="badge">Actions</span> Quick Actions</div>
         <div class="dashboard-links">
             <a href="view_appointment.php">View My Appointments</a>
             <a href="book_appointment.php">Book a New Appointment</a>
@@ -146,6 +283,6 @@ include __DIR__ . '/components/header.php';
             <a href="cancel_select.php">Cancel My Appointments</a>
         </div>
     </div>
+</div>
 
 </body>
-</html>

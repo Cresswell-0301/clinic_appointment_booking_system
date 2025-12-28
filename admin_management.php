@@ -446,6 +446,8 @@ include __DIR__ . '/components/header.php';
         background: #fff;
         padding: 25px;
         border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
     }
 
     .admin-header {
@@ -453,11 +455,16 @@ include __DIR__ . '/components/header.php';
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        gap: 12px;
+        flex-wrap: wrap;
     }
 
     .table-admin {
         width: 100%;
         border-collapse: collapse;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 10px;
+        overflow: hidden;
     }
 
     .table-admin th,
@@ -469,6 +476,10 @@ include __DIR__ . '/components/header.php';
 
     .table-admin th {
         background: #f5f7fa;
+    }
+
+    .table-admin tbody tr:hover {
+        background: rgba(30, 136, 229, 0.05);
     }
 
     .badge-active {
@@ -527,6 +538,12 @@ include __DIR__ . '/components/header.php';
         align-items: center;
         justify-content: center;
         line-height: 1;
+        transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(0.99);
     }
 
     .btn-warning {

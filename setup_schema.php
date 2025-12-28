@@ -107,7 +107,7 @@ BEGIN
         attempt_time DATETIME DEFAULT GETDATE()
     );
 END
-"
+";
 
 foreach ($queries as $sql) {
     $stmt = sqlsrv_query($conn, $sql);

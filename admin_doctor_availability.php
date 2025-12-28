@@ -184,6 +184,104 @@ if (isset($_POST['book_appointment'])) {
 
 include __DIR__ . '/components/header.php';
 ?>
+
+<style>
+    .admin-container {
+        background: #fff;
+        border-radius: 12px;
+        padding: 22px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-container h2 {
+        margin: 0 0 16px;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        padding: 12px;
+        border-radius: 10px;
+        background: rgba(100, 116, 139, 0.06);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .filter-bar input[type="date"],
+    .filter-bar select {
+        height: 38px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        background: #fff;
+        box-sizing: border-box;
+    }
+
+    .table-admin {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .table-admin th,
+    .table-admin td {
+        padding: 12px;
+        text-align: center;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        vertical-align: middle;
+    }
+
+    .table-admin th {
+        background: #f5f7fa;
+        font-weight: 800;
+    }
+
+    .table-admin tbody tr:hover {
+        background: rgba(30, 136, 229, 0.05);
+    }
+
+    .modal-content {
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.10);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+    }
+
+    .modal-content label {
+        font-weight: 700;
+        font-size: 13px;
+        color: #0f172a;
+    }
+
+    .view-field {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: rgba(100, 116, 139, 0.06);
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+    }
+
+    @media (max-width: 640px) {
+        .admin-container {
+            padding: 16px;
+        }
+
+        .filter-bar {
+            align-items: stretch;
+        }
+
+        .filter-bar > * {
+            flex: 1 1 100%;
+        }
+    }
+</style>
 <div class="content-wrapper">
     <div class="admin-container">
 
