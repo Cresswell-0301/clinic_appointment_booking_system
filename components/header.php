@@ -114,6 +114,11 @@ $_SESSION['last_activity'] = time();
                             class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_audit_logs.php' ? 'active' : ''; ?>">
                             Audit Logs
                         </a>
+
+                        <a href="admin_db_maintenance.php" style="text-decoration: none;"
+                            class="<?php echo basename($_SERVER['PHP_SELF']) === 'admin_db_maintenance.php' ? 'active' : ''; ?>">
+                            DB Maintenance
+                        </a>
                     <?php endif; ?>
                 </div>
 

@@ -5,8 +5,8 @@ function getDbConnection()
 {
     $connectionInfo = [
         "Database" => DB_DATABASE,
-        "UID"      => DB_USER,
-        "PWD"      => DB_PASSWORD,
+        "UID"      => DB_APP_USER,
+        "PWD"      => DB_APP_PASS,
     ];
 
     $conn = sqlsrv_connect(DB_SERVER, $connectionInfo);
@@ -16,6 +16,18 @@ function getDbConnection()
     }
 
     return $conn;
+}
+
+function getBackupDbConnection()
+{
+    $connectionInfo = [
+        "Database" => DB_DATABASE,
+        "UID"      => DB_BACKUP_USER,
+        "PWD"      => DB_BACKUP_PASS,
+        "CharacterSet" => "UTF-8"
+    ];
+
+    return sqlsrv_connect(DB_SERVER, $connectionInfo);
 }
 
 if (!function_exists('fetchAll')) {
