@@ -149,3 +149,10 @@ This project was developed for **academic purposes** as part of the
 **CCS6344 – Database & Cloud Security** course at Multimedia University (MMU).
 
 ---
+
+### Setup
+1. Copy `config.example.php` to `config.php`
+2. Update DB credentials and secrets in `config.php`
+3. Run the project
+
+---
