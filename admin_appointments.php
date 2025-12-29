@@ -292,17 +292,31 @@ include __DIR__ . '/components/header.php';
                                 <?= $a['status'] ?>
                             </span>
                         </td>
-                        <td>
-                            <?php if ($canCancel): ?>
-                                <form method="post" action="admin_cancel_appointment.php"
-                                    onsubmit="return confirm('Cancel this appointment?');"
-                                    style="margin:0;">
-                                    <input type="hidden" name="appointment_id"
-                                        value="<?= (int)$a['appointment_id'] ?>">
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        Cancel
-                                    </button>
-                                </form>
+                        <td style="justify-content: center; align-items: center; display: flex;">
+                            <?php if ($a['status'] === 'Booked' && $a['appointment_dt'] >= $now): ?>
+                                <div style="display:flex; gap:6px;">
+                                    <!-- Complete -->
+                                    <form method="post" action="admin_update_status.php"
+                                        onsubmit="return confirm('Mark this appointment as completed?');">
+                                        <input type="hidden" name="appointment_id"
+                                            value="<?= (int)$a['appointment_id'] ?>">
+                                        <input type="hidden" name="new_status" value="Completed">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            Complete
+                                        </button>
+                                    </form>
+                                    <!-- Cancel -->
+                                    <?php if ($a['appointment_dt'] >= $now): ?>
+                                        <form method="post" action="admin_cancel_appointment.php"
+                                            onsubmit="return confirm('Cancel this appointment?');">
+                                            <input type="hidden" name="appointment_id"
+                                                value="<?= (int)$a['appointment_id'] ?>">
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                Cancel
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             <?php else: ?>
                                 <span style="color:#999;">N/A</span>
                             <?php endif; ?>

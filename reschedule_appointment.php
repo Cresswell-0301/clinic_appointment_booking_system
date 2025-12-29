@@ -216,6 +216,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['modify_submit'])) {
                     // Refresh page data so the UI updates immediately
                     $apptRow['appointment_date'] = $newSlot['available_date'];
                     $apptRow['appointment_time'] = $newSlot['available_time'];
+
+                    header("Refresh: 1; URL=patient_dashboard.php");
                 } catch (Exception $e) {
                     sqlsrv_rollback($conn);
                     $errors[] = "Error: " . $e->getMessage();
