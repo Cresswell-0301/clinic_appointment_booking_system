@@ -1,20 +1,22 @@
 # Clinic Appointment Booking System  
 **CCS6344 – Database & Cloud Security (T2530) – Assignment 1**
 
+---
+
 ## Project Overview
-This project implements a **secure web-based Clinic Appointment Booking System** developed using **PHP** and **Microsoft SQL Server (MSSQL)**.  
+This project implements a **secure web-based Clinic Appointment Booking System** using **PHP** and **Microsoft SQL Server (MSSQL)**.
 
-The system supports **Patients, Doctors, Administrators, and SuperAdmin** roles and focuses strongly on **backend security, access control, and database protection**, in line with the objectives of the CCS6344 course.
+The system supports four distinct roles — **Patient, Doctor, Administrator, and SuperAdmin** — and is designed with a strong emphasis on **backend security, database protection, and access control**, in alignment with the learning outcomes of the **CCS6344 – Database & Cloud Security** course.
 
-The primary goal of this project is not only functional correctness, but also **demonstrating secure database and backend design against internal and external threats**.
+Beyond functional requirements, the primary objective of this project is to **demonstrate secure backend and database design against both internal and external threats**, following industry-aligned security practices.
 
 ---
 
 ## Key Objectives
-- Provide a secure platform for booking and managing clinic appointments
-- Enforce **role-based and ownership-based access control**
-- Protect sensitive personal and appointment data stored in MSSQL
-- Apply **database security concepts** learned in CCS6344
+- Provide a secure platform for booking and managing clinic appointments  
+- Enforce **role-based** and **ownership-based** access control  
+- Protect sensitive personal and appointment data stored in MSSQL  
+- Apply database security concepts covered in CCS6344  
 - Demonstrate compliance with **PDPA 2010 security principles**
 
 ---
@@ -22,137 +24,138 @@ The primary goal of this project is not only functional correctness, but also **
 ## System Architecture
 The system follows a **three-tier architecture**:
 
-1. **Presentation Layer**
-   - HTML, CSS, JavaScript
-   - Handles user interaction and input
+### 1. Presentation Layer
+- HTML, CSS, JavaScript  
+- Handles user interaction and input validation  
 
-2. **Application Layer**
-   - PHP
-   - Implements business logic, authentication, authorization, and security checks
+### 2. Application Layer
+- PHP  
+- Implements authentication, authorization, business logic, and security controls  
 
-3. **Database Layer**
-   - Microsoft SQL Server (MSSQL)
-   - Stores users, appointments, availability, audit logs, and login attempts
+### 3. Database Layer
+- Microsoft SQL Server (MSSQL)  
+- Stores users, appointments, availability, audit logs, and login attempts  
 
-Security controls are enforced **at the backend**, not solely at the UI level.
+> **Note:** Security controls are enforced at the **backend layer**, not solely at the UI.
 
 ---
 
 ## User Roles
-- **Patient** – Book, view, modify, and cancel own appointments
-- **Doctor** – Manage schedules and view assigned patient information
-- **Administrator** – Manage users, appointments, and doctor availability
-- **SuperAdmin** – Full administrative privileges, including audit log access
+- **Patient** – Book, view, modify, and cancel own appointments  
+- **Doctor** – Manage schedules and view assigned patient information  
+- **Administrator** – Manage users, appointments, and doctor availability  
+- **SuperAdmin** – Highest privilege role with access to audit logs and critical system functions  
 
 ---
 
 ## Backend Security Features
 
 ### Authentication & Session Security
-- Password hashing using `password_hash()` (bcrypt)
-- Secure login verification using `password_verify()`
-- Session ID regeneration after login (prevents session fixation)
+- Password hashing using `password_hash()` (bcrypt)  
+- Secure authentication using `password_verify()`  
+- Session ID regeneration after login (prevents session fixation)  
 - Secure session cookies:
   - `HttpOnly`
   - `Secure`
   - `SameSite=Strict`
-- CSRF token validation for all state-changing requests
+- CSRF token validation for all state-changing requests  
 
 ---
 
 ### Role-Based Access Control (RBAC)
-- Enforced on **every protected backend page**
-- Role validation occurs **before any database query**
-- SuperAdmin-only access to sensitive operations such as audit logs
-- Prevents privilege escalation and unauthorized access
+- Enforced on **every protected backend page**  
+- Role validation occurs **before any database query is executed**  
+- SuperAdmin-only access to sensitive operations such as audit logs and backups  
+- Prevents privilege escalation and unauthorized access  
 
 ---
 
 ### SQL Injection Prevention
-- **100% parameterized queries** (PDO / SQLSRV prepared statements)
-- No dynamic SQL concatenation
-- Malicious input cannot alter query structure
+- **100% parameterized queries** (PDO / SQLSRV prepared statements)  
+- No dynamic SQL concatenation  
+- User input cannot alter query structure  
 
 ---
 
 ### Ownership & Row-Level Protection (Application Layer)
-- Patients can only access records where:
-- Doctors can only access appointments linked to their `doctor_id`
-- Admin actions are role-restricted and logged
-- Prevents **horizontal privilege escalation**
+- Patients can only access records linked to their own `user_id`  
+- Doctors can only access appointments linked to their `doctor_id`  
+- Administrative actions are role-restricted and logged  
+- Prevents **horizontal privilege escalation**  
 
 ---
 
 ### Least-Privilege Database Access
-- Application connects using a **restricted SQL account**
-- No use of `sa` or administrative credentials
+- Application connects using a **restricted SQL account**  
+- No use of `sa` or administrative credentials  
 - Application account cannot:
-- DROP tables
-- ALTER schema
-- Access system-level objects
+  - DROP tables  
+  - ALTER schema  
+  - Access system-level objects  
 
-Even if the application layer is compromised, database damage is limited.
+> Even if the application layer is compromised, database damage is limited.
 
 ---
 
 ### Audit Logging & Monitoring
-- Security-relevant actions recorded in `AuditLogs` table:
-- Login attempts
-- User management
-- Appointment creation, update, cancellation
-- Each log entry includes:
-- User ID
-- Role
-- Action type
-- Affected entity
-- IP address
-- Timestamp
-- Supports accountability, repudiation prevention, and forensic review
+- Security-relevant actions are recorded in the `AuditLogs` table:
+  - Login attempts  
+  - User management  
+  - Appointment creation, update, and cancellation  
+  - Database backup operations  
+- Each log entry records:
+  - User ID  
+  - Role  
+  - Action type  
+  - Affected entity  
+  - IP address  
+  - Timestamp  
+
+Supports **accountability**, **repudiation prevention**, and **forensic review**.
 
 ---
 
 ## Threat Modelling
-The system is evaluated using **STRIDE** and **DREAD** threat modelling:
+The system is evaluated using **STRIDE** and **DREAD** threat modelling techniques:
 
-- **Spoofing** → Strong password hashing & rate-limiting
-- **Tampering** → Ownership checks & CSRF protection
-- **Repudiation** → Comprehensive audit logging
-- **Information Disclosure** → Row-level access enforcement
-- **Denial of Service** → Login attempt monitoring
-- **Elevation of Privilege** → RBAC enforcement
+- **Spoofing** → Password hashing and login attempt monitoring  
+- **Tampering** → Ownership checks and CSRF protection  
+- **Repudiation** → Mandatory audit logging  
+- **Information Disclosure** → Row-level access enforcement  
+- **Denial of Service** → Login attempt monitoring  
+- **Elevation of Privilege** → Strict RBAC enforcement  
 
-Each identified threat is mitigated through **concrete backend controls**.
+Each identified threat is mitigated through **concrete backend controls implemented in code**.
 
 ---
 
 ## PDPA 2010 Compliance
-Backend controls support PDPA 2010 principles:
-- **Security Principle** – Encrypted credentials, session security, RBAC
-- **Disclosure Principle** – Role-based and ownership-based data access
-- **Access Principle** – Users can only access authorized personal data
-- **Accountability** – Audit logs record sensitive operations
+Backend controls support key PDPA 2010 principles:
+
+- **Security Principle** – Encrypted credentials, secure sessions, RBAC  
+- **Disclosure Principle** – Role-based and ownership-based data access  
+- **Access Principle** – Users can only access authorized personal data  
+- **Accountability** – Audit logs record sensitive operations  
 
 ---
 
 ## Testing
 The system has been tested for:
-- Insert new appointment
-- Modify existing appointment
-- Cancel appointment
-- Role-restricted access validation
-- Audit log generation
+- Appointment creation  
+- Appointment modification  
+- Appointment cancellation  
+- Role-restricted access validation  
+- Audit log generation and integrity  
 
 ---
 
 ## Notes
-This project was developed for **academic purposes** as part of the  
-**CCS6344 – Database & Cloud Security** course at Multimedia University (MMU).
+This project was developed **for academic purposes** as part of the  
+**CCS6344 – Database & Cloud Security** course at **Multimedia University (MMU)**.
 
 ---
 
-### Setup
-1. Copy `config.example.php` to `config.php`
-2. Update DB credentials and secrets in `config.php`
-3. Run the project
-
----
+## Setup Instructions
+1. Copy `config.example.php` to `config.php`  
+2. Update database credentials and secret values in `config.php`  
+3. Deploy the project on a PHP-supported server with MSSQL connectivity  
